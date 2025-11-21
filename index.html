@@ -1,469 +1,94 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Facilita Agência — FINAL (camera on demand)</title>
-<meta name="theme-color" content="#06b6d4">
-<style>
-  :root{--bg:#071228;--card:#0f172a;--accent:#06b6d4;--muted:#94a3b8;--white:#eef2ff}
-  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--white);padding:12px}
-  h1{font-size:20px;margin:0 0 8px 0}
-  .card{background:#0f172a;padding:12px;border-radius:10px;margin-top:12px}
-  .btn-row{display:flex;gap:8px;justify-content:space-between;margin-bottom:10px}
-  .big-btn{flex:1;padding:12px;border-radius:10px;border:0;font-weight:700;font-size:17px;cursor:pointer}
-  .P{background:#16a34a;color:#061a10}
-  .M{background:#2563eb;color:#eaf2ff}
-  .G{background:#dc2626;color:#fff}
-  input, select, button {width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:16px}
-  #reader {width:100%;border-radius:8px;margin-top:8px;background:#000;min-height:220px;display:flex;align-items:center;justify-content:center}
-  #reader video{width:100%;height:100%;object-fit:cover;border-radius:8px}
-  .small{color:var(--muted);font-size:13px;margin-top:6px}
-  .item{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
-  .label{font-weight:700;font-size:20px}
-  .muted{color:var(--muted);font-size:13px}
-  .row{display:flex;gap:8px}
-  .actions button{padding:8px;border-radius:8px;border:0;background:#1f2937;color:#fff}
-  #lista{max-height:260px;overflow:auto;margin-top:8px}
-  .danger{background:#7f1d1d;color:#fff;padding:8px;border-radius:8px}
-  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111;padding:10px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);display:none;z-index:9999}
-  .controls{display:flex;gap:8px;flex-wrap:wrap}
-  .status{margin-top:8px;font-size:14px;color:#cbd5e1}
-  .error{color:#ffb4b4;background:#3b0f0f;padding:8px;border-radius:8px;margin-top:8px}
-  a.small-link{color:var(--accent);text-decoration:none;font-size:13px}
-</style>
-</head>
-<body>
-  <h1>📦 Facilita Agência — ON DEMAND</h1>
-
-  <div class="card">
-    <div class="small">Escolha o tamanho antes de bipa</div>
-    <div class="btn-row" style="margin-top:8px">
-      <button id="btnP" class="big-btn P" title="Pequeno">P</button>
-      <button id="btnM" class="big-btn M" title="Médio">M</button>
-      <button id="btnG" class="big-btn G" title="Grande">G</button>
-    </div>
-    <div id="selected" class="small">Tamanho selecionado: <strong id="selText">M</strong></div>
-
-    <div style="margin-top:10px" class="controls">
-      <button id="btnOpen" class="big-btn" style="flex:1;background:#0ea5a1;color:#021">Abrir Câmera (BIPAR)</button>
-      <button id="btnStop" class="big-btn" style="flex:1;display:none;background:#374151">Parar câmera</button>
-    </div>
-
-    <div id="reader"><div class="small">Câmera inativa — toque "Abrir Câmera (BIPAR)" para iniciar.</div></div>
-    <div id="statusText" class="small status">Status: Inativo</div>
-    <div id="errorBox" class="error" style="display:none"></div>
-
-    <div style="margin-top:10px">
-      <div class="small">Código detectado / campo manual</div>
-      <input id="codigo" placeholder="Código do cliente (12 dígitos)" inputmode="numeric" maxlength="24"/>
-      <div class="row">
-        <button id="btnGen" class="big-btn" style="flex:1">Gerar etiqueta</button>
-        <button id="btnImport" class="big-btn" style="flex:0.6;background:#111827">Importar JSON</button>
-      </div>
-      <div id="out" class="small"></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin:0">🔎 Buscar por parte do código</h3>
-    <div class="small">Digite os 5 primeiros, 5 últimos ou qualquer trecho</div>
-    <input id="busca" placeholder="Parte do código (ex: 03399 ou 8136)"/>
-    <div class="row" style="margin-top:8px">
-      <button id="btnBusca">Buscar</button>
-      <button id="btnClearSearch" class="big-btn" style="flex:0.6;background:#374151">Limpar</button>
-    </div>
-    <div id="resultados"></div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin:0">📋 Registros</h3>
-    <div class="small">Últimos registros (toque em entregar para liberar número)</div>
-    <div id="lista"></div>
-    <div style="margin-top:8px" class="row">
-      <button id="btnExport">Exportar CSV</button>
-      <button id="btnBackup">Backup (baixar JSON)</button>
-      <button id="btnResetUI" class="danger">Resetar (protegido)</button>
-    </div>
-    <div class="small" style="margin-top:8px">Backup automático a cada 2 minutos; desfazer reset disponível por 10 minutos.</div>
-  </div>
-
-  <input type="file" id="importFile" accept="application/json" style="display:none"/>
-  <div id="toast" class="toast"></div>
-
-<!-- html5-qrcode -->
-<script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
-<script>
-/* CONFIG */
-const RESET_PASSWORD = "4608";
-const UNDO_WINDOW_MS = 10 * 60 * 1000;
-const AUTO_BACKUP_INTERVAL = 2 * 60 * 1000;
-const STORAGE_KEY = 'FACILITA_ONDEMAND_DB_V1';
-
-/* DB init */
-let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-if(!DB) DB = { registros: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, lastUndo:null, undoData:null };
-
-/* UI refs */
-const btnP = document.getElementById('btnP');
-const btnM = document.getElementById('btnM');
-const btnG = document.getElementById('btnG');
-const selText = document.getElementById('selText');
-const btnOpen = document.getElementById('btnOpen');
-const btnStop = document.getElementById('btnStop');
-const readerDiv = document.getElementById('reader');
-const statusText = document.getElementById('statusText');
-const errorBox = document.getElementById('errorBox');
-const codigoInput = document.getElementById('codigo');
-const btnGen = document.getElementById('btnGen');
-const btnBusca = document.getElementById('btnBusca');
-const buscaInput = document.getElementById('busca');
-const resultados = document.getElementById('resultados');
-const lista = document.getElementById('lista');
-const toast = document.getElementById('toast');
-const btnExport = document.getElementById('btnExport');
-const btnBackup = document.getElementById('btnBackup');
-const btnResetUI = document.getElementById('btnResetUI');
-const importFile = document.getElementById('importFile');
-
-let selected = 'M';
-let html5QrcodeScanner = null;
-let scanning = false;
-let lastScanTime = 0;
-let lastDetected = null;
-
-/* utils */
-function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
-function pad(n){ return String(n).padStart(4,'0'); }
-function makeLabel(t,n){ return t + pad(n); }
-function showToast(msg, ms=1200){ toast.textContent = msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none', ms); }
-function vibrate(ms=40){ if(navigator.vibrate) navigator.vibrate(ms); }
-
-/* numbering */
-function nextNum(t){
-  if(DB.livres[t].length){ DB.livres[t].sort((a,b)=>a-b); return DB.livres[t].shift(); }
-  DB.contadores[t] = (DB.contadores[t]||0) + 1;
-  return DB.contadores[t];
-}
-
-/* allocate */
-function allocate(code, t, auto=true){
-  if(!code) return null;
-  const exist = DB.registros.find(r => r.codigo === code && !r.entregue);
-  if(exist) return exist;
-  const n = nextNum(t);
-  const et = makeLabel(t,n);
-  const rec = {codigo: code, etiqueta: et, tamanho: t, num: n, entregue:false, ts: Date.now()};
-  DB.registros.push(rec);
-  save();
-  refreshList();
-  if(auto){ showToast('Gerado ' + et); vibrate(30); }
-  return rec;
-}
-
-/* entregar */
-function entregar(et){
-  const rec = DB.registros.find(r => r.etiqueta === et);
-  if(!rec) return alert('Não encontrado');
-  if(rec.entregue) return alert('Já entregue');
-  rec.entregue = true;
-  DB.livres[rec.tamanho].push(rec.num);
-  save(); refreshList(); showToast('Entregue ' + et);
-}
-window.entregar = entregar;
-
-/* UI handlers */
-btnP.addEventListener('click', ()=>{ selected='P'; selText.textContent='P'; btnP.style.outline='3px solid rgba(255,255,255,0.04)';});
-btnM.addEventListener('click', ()=>{ selected='M'; selText.textContent='M'; btnM.style.outline='3px solid rgba(255,255,255,0.04)';});
-btnG.addEventListener('click', ()=>{ selected='G'; selText.textContent='G'; btnG.style.outline='3px solid rgba(255,255,255,0.04)';});
-
-btnGen.addEventListener('click', ()=> {
-  const code = codigoInput.value.trim();
-  if(!code){ alert('Digite ou escaneie o código'); return; }
-  const r = allocate(code, selected, false);
-  if(r) { showToast('Gerado: ' + r.etiqueta); codigoInput.value=''; }
-});
-
-/* refresh list */
-function refreshList(){
-  lista.innerHTML = '';
-  DB.registros.slice().reverse().forEach(r=>{
-    const div = document.createElement('div'); div.className='item';
-    div.innerHTML = `<div><div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho} • ${r.entregue? 'Entregue':'Pendente'}</div></div>
-      <div class="actions"><button onclick="entregar('${r.etiqueta}')">Entregar</button></div>`;
-    lista.appendChild(div);
-  });
-}
-
-/* search */
-btnBusca.addEventListener('click', ()=>{
-  const q = buscaInput.value.trim();
-  resultados.innerHTML = '';
-  if(!q) return resultados.innerHTML = '<div class="small">Digite algo.</div>';
-  const matches = DB.registros.filter(r => r.codigo.includes(q));
-  if(matches.length===0) return resultados.innerHTML = '<div class="small">Nenhum encontrado.</div>';
-  matches.forEach(r=>{
-    const d = document.createElement('div'); d.className='item';
-    d.innerHTML = `<div><b>${r.etiqueta}</b><div class="small">${r.codigo} • ${r.entregue? 'Entregue':'Pendente'}</div></div>
-      <div><button onclick="entregar('${r.etiqueta}')">Entregar</button></div>`;
-    resultados.appendChild(d);
-  });
-});
-
-/* export CSV */
-document.getElementById('btnExport').addEventListener('click', ()=>{
-  const rows = [['clientCode','etiqueta','tamanho','num','entregue','ts']];
-  DB.registros.forEach(r=>rows.push([r.codigo,r.etiqueta,r.tamanho,r.num,r.entregue,r.ts]));
-  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\\n');
-  const blob = new Blob([csv],{type:'text/csv'}); const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download='facilita-agencia.csv'; a.click(); URL.revokeObjectURL(url);
-});
-
-/* backup download */
-btnBackup.addEventListener('click', ()=>{
-  const data = JSON.stringify(DB);
-  const blob = new Blob([data],{type:'application/json'}); const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download='facilita-agencia-backup.json'; a.click(); URL.revokeObjectURL(url);
-});
-
-/* import */
-document.getElementById('btnImport').addEventListener('click', ()=> importFile.click());
-importFile.addEventListener('change', (e)=>{
-  const f = e.target.files[0]; if(!f) return;
-  const reader = new FileReader();
-  reader.onload = function(){ try{ const j = JSON.parse(reader.result); if(j.registros) { if(confirm('Importar e substituir dados atuais?')){ DB=j; save(); refreshList(); alert('Importado'); } } else alert('Arquivo inválido'); }catch(err){ alert('Erro ao importar'); } };
-  reader.readAsText(f);
-});
-
-/* reset protected */
-btnResetUI.addEventListener('click', ()=>{
-  const pass = prompt('Senha para reset:');
-  if(pass !== RESET_PASSWORD){ alert('Senha inválida'); return; }
-  const confirmText = prompt('Digite a frase de confirmação: QUERO RESETAR TUDO');
-  if(confirmText !== 'QUERO RESETAR TUDO'){ alert('Confirmação incorreta'); return; }
-  DB.lastUndo = Date.now();
-  DB.undoData = JSON.stringify(DB);
-  localStorage.setItem(STORAGE_KEY + '_PRE_RESET', DB.undoData);
-  DB = { registros: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, lastUndo: DB.lastUndo, undoData: DB.undoData };
-  save(); refreshList();
-  showToast('Reset feito. Você tem 10 minutos para desfazer.');
-  checkUndoExpiry();
-});
-
-/* undo */
-function checkUndoExpiry(){
-  if(!DB.lastUndo) return;
-  const elapsed = Date.now() - DB.lastUndo;
-  if(elapsed > UNDO_WINDOW_MS){
-    DB.lastUndo = null; DB.undoData = null; localStorage.removeItem(STORAGE_KEY + '_PRE_RESET'); save();
-    showToast('Período de desfazer expirou');
-  } else {
-    if(!document.getElementById('undoBtn')){
-      const b = document.createElement('button'); b.id='undoBtn'; b.textContent='Desfazer Reset (10 min)'; b.style.marginTop='8px'; b.style.background='#f97316'; b.style.color='#012';
-      b.onclick = function(){
-        const saved = localStorage.getItem(STORAGE_KEY + '_PRE_RESET');
-        if(!saved) return alert('Nenhum backup encontrado');
-        try{ DB = JSON.parse(saved); DB.lastUndo = null; DB.undoData = null; localStorage.removeItem(STORAGE_KEY + '_PRE_RESET'); save(); refreshList(); alert('Dados restaurados'); b.remove(); }catch(e){ alert('Falha ao restaurar'); }
-      };
-      document.querySelector('.card').appendChild(b);
-    }
-    setTimeout(checkUndoExpiry,5000);
-  }
-}
-
-/* autosave */
-setInterval(()=>{ try{ localStorage.setItem(STORAGE_KEY + '_AUTOSAVE', JSON.stringify(DB)); }catch(e){} }, AUTO_BACKUP_INTERVAL);
-
-/* SCANNER (on demand) */
-async function safeStartScanner(){
-  if(scanning) return;
-  errorBox.style.display='none';
-  statusText.textContent = 'Status: Inicializando câmera...';
-  readerDiv.innerHTML = '';
-  const container = document.createElement('div'); container.id='readerInner'; container.style.width='100%'; container.style.minHeight='220px'; readerDiv.appendChild(container);
-
-  // quick permission check (warmup)
-  try{
-    const s = await navigator.mediaDevices.getUserMedia({ video: true });
-    s.getTracks().forEach(t=>t.stop());
-  }catch(e){
-    errorBox.style.display='block';
-    errorBox.textContent = 'Permissão de câmera negada ou indisponível. Verifique permissões do site.';
-    statusText.textContent = 'Status: Erro de permissão';
-    return;
-  }
-
-  try{
-    const formats = [
-      Html5QrcodeSupportedFormats.QR_CODE,
-      Html5QrcodeSupportedFormats.CODE_128,
-      Html5QrcodeSupportedFormats.EAN_13,
-      Html5QrcodeSupportedFormats.CODE_39,
-      Html5QrcodeSupportedFormats.UPC_A
-    ];
-    html5QrcodeScanner = new Html5Qrcode("readerInner", { verbose:false });
-    await html5QrcodeScanner.start(
-      { facingMode: { exact: "environment" } },
-      { fps: 10, qrbox: false, formatsToSupport: formats },
-      (decodedText) => { handleDetected(decodedText); },
-      (errorMessage) => { /* ignore minor errors */ }
-    );
-    scanning = true;
-    btnOpen.style.display='none';
-    btnStop.style.display='inline-block';
-    statusText.textContent = 'Status: Escaneando...';
-    showToast('Câmera iniciada');
-  }catch(err){
-    console.warn('start error', err);
-    // fallback without exact constraint
-    try{
-      await html5QrcodeScanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: false, formatsToSupport: formats },
-        (decodedText) => { handleDetected(decodedText); },
-        () => {}
-      );
-      scanning = true;
-      btnOpen.style.display='none';
-      btnStop.style.display='inline-block';
-      statusText.textContent = 'Status: Escaneando (fallback)...';
-      showToast('Câmera iniciada (fallback)');
-    }catch(e2){
-      errorBox.style.display='block';
-      errorBox.textContent = 'Erro ao iniciar câmera: ' + (e2 && e2.message ? e2.message : e2);
-      statusText.textContent = 'Status: Erro';
-      safeStopScanner();
-    }
-  }
-}
-
-async function safeStopScanner(){
-  try{
-    if(!html5QrcodeScanner) {
-      scanning = false;
-      btnOpen.style.display='inline-block';
-      btnStop.style.display='none';
-      readerDiv.innerHTML = '<div class="small">Câmera inativa — toque "Abrir Câmera (BIPAR)"</div>';
-      statusText.textContent = 'Status: Inativo';
-      return;
-    }
-    await html5QrcodeScanner.stop();
-    await html5QrcodeScanner.clear();
-  }catch(e){ console.warn('safeStop error', e); }
-  html5QrcodeScanner = null;
-  scanning = false;
-  btnOpen.style.display='inline-block';
-  btnStop.style.display='none';
-  readerDiv.innerHTML = '<div class="small">Câmera inativa — toque "Abrir Câmera (BIPAR)"</div>';
-  statusText.textContent = 'Status: Inativo';
-}
-
-/* when detected */
-let lastAllocTime = 0;
-function handleDetected(text){
-  const now = Date.now();
-  if(!text) return;
-  let raw = String(text).trim();
-  const onlyDigits = raw.replace(/\D/g,'');
-  if(onlyDigits.length >= 6) raw = onlyDigits;
-  if(lastDetected === raw && (now - lastAllocTime) < 700) return;
-  lastDetected = raw; lastAllocTime = now;
-  codigoInput.value = raw;
-  allocate(raw, selected, true);
-}
-
-/* event listeners */
-btnOpen.addEventListener('click', safeStartScanner);
-btnStop.addEventListener('click', safeStopScanner);
-
-/* init */
-refreshList();
-checkUndoExpiry();
-
-</script>
-</body>
-</html>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facilita Agência — ON DEMAND</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
-        h1 { color: #333; }
-        button { padding: 10px 15px; margin: 5px; }
-        #camera { width: 100%; max-width: 400px; margin-top: 10px; border: 1px solid #ccc; }
-        #status { margin-top: 10px; font-weight: bold; }
-        #codigo { margin-top: 10px; width: 100%; padding: 5px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Facilita Agência — ON DEMAND</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+    h1 { color: #333; }
+    button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+    #camera { width: 100%; max-width: 400px; margin-top: 10px; border: 1px solid #ccc; }
+    #status { margin-top: 10px; font-weight: bold; }
+    #codigo { margin-top: 10px; width: 100%; padding: 5px; }
+    .section { margin-top: 20px; }
+  </style>
 </head>
 <body>
 
 <h1>📦 Facilita Agência — ON DEMAND</h1>
 
-<p>Escolha o tamanho antes de bipa</p>
-<p>PMG<br>Tamanho selecionado: <strong id="tamanhoSelecionado">M</strong></p>
+<div class="section">
+  <p>Escolha o tamanho antes de bipa</p>
+  <p>PMG<br>Tamanho selecionado: <strong id="tamanhoSelecionado">M</strong></p>
+</div>
 
-<button id="abrirCameraBtn">Abrir Câmera (BIPAR)</button>
-<p id="status">Câmera inativa — toque "Abrir Câmera (BIPAR)"</p>
+<div class="section">
+  <button id="abrirCameraBtn">Abrir Câmera (BIPAR)</button>
+  <p id="status">Câmera inativa — toque "Abrir Câmera (BIPAR)"</p>
+  <video id="camera" autoplay playsinline></video>
+</div>
 
-<video id="camera" autoplay playsinline></video>
+<div class="section">
+  <p>Código detectado / campo manual</p>
+  <input type="text" id="codigo" placeholder="Digite aqui ou aguarde a leitura do QR">
+</div>
 
-<p>Código detectado / campo manual</p>
-<input type="text" id="codigo" placeholder="Digite aqui ou aguarde a leitura do QR">
+<div class="section">
+  <button id="gerarEtiquetaBtn">Gerar etiqueta</button>
+  <button id="importarJSONBtn">Importar JSON</button>
+  <button id="desfazerResetBtn">Desfazer Reset (10 min)</button>
+</div>
 
-<button id="gerarEtiquetaBtn">Gerar etiqueta</button>
-<button id="importarJSONBtn">Importar JSON</button>
-<button id="desfazerResetBtn">Desfazer Reset (10 min)</button>
-
-<p>Últimos registros</p>
-<button id="exportarCSVBtn">Exportar CSV</button>
-<button id="backupJSONBtn">Backup (baixar JSON)</button>
-
-<p>Backup automático a cada 2 minutos; desfazer reset disponível por 10 minutos.</p>
+<div class="section">
+  <p>Últimos registros</p>
+  <button id="exportarCSVBtn">Exportar CSV</button>
+  <button id="backupJSONBtn">Backup (baixar JSON)</button>
+  <p>Backup automático a cada 2 minutos; desfazer reset disponível por 10 minutos.</p>
+</div>
 
 <script>
-const abrirCameraBtn = document.getElementById('abrirCameraBtn');
 const status = document.getElementById('status');
-const video = document.getElementById('camera');
 
-abrirCameraBtn.addEventListener('click', async () => {
-    if (!video) {
-        alert('Elemento de vídeo não encontrado');
-        return;
-    }
+// Função que inicia a câmera quando o <video> estiver pronto
+function initCameraWhenReady() {
+  status.textContent = 'Tentando iniciar câmera...';
 
-    try {
+  const observer = new MutationObserver(async (mutations, obs) => {
+    const video = document.getElementById('camera');
+    if (video) {
+      obs.disconnect(); // para de observar
+      try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = stream;
         await video.play();
         status.textContent = 'Câmera ativa';
         console.log('Câmera iniciada com sucesso!');
-    } catch (err) {
+      } catch (err) {
         console.error('Erro ao iniciar câmera:', err);
         status.textContent = 'Erro ao iniciar câmera';
         alert('Não foi possível acessar a câmera. Verifique permissões.');
+      }
     }
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
+// Botão para abrir câmera
+document.getElementById('abrirCameraBtn').addEventListener('click', initCameraWhenReady);
+
+// Botões extras (implementação básica de exemplo)
+document.getElementById('gerarEtiquetaBtn').addEventListener('click', () => {
+  const codigo = document.getElementById('codigo').value;
+  if (!codigo) return alert('Digite ou escaneie um código antes de gerar a etiqueta.');
+  alert(`Etiqueta gerada para o código: ${codigo}`);
 });
 
-// Aqui você pode adicionar os handlers dos outros botões (gerar etiqueta, importar JSON, exportar CSV etc.)
-// Exemplo simples:
-document.getElementById('gerarEtiquetaBtn').addEventListener('click', () => {
-    alert('Função gerar etiqueta ainda não implementada!');
-});
-document.getElementById('importarJSONBtn').addEventListener('click', () => {
-    alert('Função importar JSON ainda não implementada!');
-});
-document.getElementById('desfazerResetBtn').addEventListener('click', () => {
-    alert('Função desfazer reset ainda não implementada!');
-});
-document.getElementById('exportarCSVBtn').addEventListener('click', () => {
-    alert('Função exportar CSV ainda não implementada!');
-});
-document.getElementById('backupJSONBtn').addEventListener('click', () => {
-    alert('Função backup JSON ainda não implementada!');
-});
+document.getElementById('importarJSONBtn').addEventListener('click', () => alert('Importar JSON ainda não implementado.'));
+document.getElementById('desfazerResetBtn').addEventListener('click', () => alert('Desfazer Reset ainda não implementado.'));
+document.getElementById('exportarCSVBtn').addEventListener('click', () => alert('Exportar CSV ainda não implementado.'));
+document.getElementById('backupJSONBtn').addEventListener('click', () => alert('Backup JSON ainda não implementado.'));
 </script>
 
 </body>
