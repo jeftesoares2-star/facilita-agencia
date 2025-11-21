@@ -3,168 +3,165 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Facilita Agência — Pacotes On Demand</title>
+<title>Facilita Agência — Bipar & Etiqueta</title>
 <meta name="theme-color" content="#06b6d4">
 <style>
-:root{--bg:#071228;--card:#0f172a;--accent:#06b6d4;--muted:#94a3b8;--white:#eef2ff}
-body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--white);padding:12px}
-h1{font-size:20px;margin:0 0 8px 0}
-.card{background:#0f172a;padding:12px;border-radius:10px;margin-top:12px}
-.btn-row{display:flex;gap:8px;justify-content:space-between;margin-bottom:10px}
-.big-btn{flex:1;padding:12px;border-radius:10px;border:0;font-weight:700;font-size:17px;cursor:pointer}
-.P{background:#16a34a;color:#061a10}
-.M{background:#2563eb;color:#eaf2ff}
-.G{background:#dc2626;color:#fff}
-input, select, button {width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:16px}
-#pendingList, #deliveredList{max-height:260px;overflow:auto;margin-top:8px}
-.item{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
-.label{font-weight:700;font-size:20px}
-.small{color:var(--muted);font-size:13px;margin-top:6px}
-.actions button{padding:6px;border-radius:6px;border:0;background:#1f2937;color:#fff;font-size:14px}
-/* etiqueta flutuante */
-.floatingLabel{
-  position:fixed;
-  top:20px; left:50%;
-  transform:translateX(-50%);
-  background:#2563eb;
-  color:#fff;
-  font-size:24px;
-  font-weight:700;
-  padding:12px 20px;
-  border-radius:10px;
-  box-shadow:0 4px 14px rgba(0,0,0,0.4);
-  z-index:9999;
-  display:none;
-  animation:fadeInOut 2s forwards;
-}
-@keyframes fadeInOut{
-  0%{opacity:0; transform:translate(-50%, -20px);}
-  10%{opacity:1; transform:translate(-50%,0);}
-  90%{opacity:1; transform:translate(-50%,0);}
-  100%{opacity:0; transform:translate(-50%,-20px);}
-}
+  :root{--bg:#071228;--card:#0f172a;--accent:#06b6d4;--muted:#94a3b8;--white:#eef2ff}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--white);padding:12px}
+  h1{font-size:20px;margin:0 0 8px 0;text-align:center;}
+  .card{background:#0f172a;padding:12px;border-radius:10px;margin-top:12px}
+  input{width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:16px}
+  .small{color:var(--muted);font-size:13px;margin-top:6px}
+  .item{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
+  .label{font-weight:700;font-size:20px}
+  .actions button{padding:8px;border-radius:8px;border:0;background:#1f2937;color:#fff}
+  #lista,#entregues{max-height:260px;overflow:auto;margin-top:8px}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111;padding:10px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);display:none;z-index:9999}
+  .size-popup{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);background:#1e293b;padding:20px;border-radius:12px;display:none;flex-direction:column;gap:12px;z-index:9999;box-shadow:0 0 12px rgba(0,0,0,0.6);}
+  .size-popup button{width:100%;font-size:18px;padding:12px;border-radius:8px;border:0;cursor:pointer;}
+  .size-popup .P{background:#16a34a;color:#061a10;}
+  .size-popup .M{background:#2563eb;color:#eaf2ff;}
+  .size-popup .G{background:#dc2626;color:#fff;}
 </style>
 </head>
 <body>
-
-<h1>📦 Facilita Agência — On Demand</h1>
+<h1>📦 Facilita Agência — Bipar & Etiqueta</h1>
 
 <div class="card">
-  <div class="small">Bipe o código do cliente</div>
-  <input id="codigo" placeholder="Bipe ou digite o código do cliente" inputmode="numeric" maxlength="24"/>
-  
-  <div class="small" style="margin-top:12px">Escolha o tamanho do pacote</div>
-  <div class="btn-row">
-    <button id="btnP" class="big-btn P">P</button>
-    <button id="btnM" class="big-btn M">M</button>
-    <button id="btnG" class="big-btn G">G</button>
-  </div>
+  <div class="small">Bipe o código do cliente no leitor externo (Teclado Scan, etc.)</div>
+  <input id="codigoInput" placeholder="Código do cliente" autofocus autocomplete="off"/>
 </div>
 
 <div class="card">
   <h3>📋 Pacotes Pendentes</h3>
-  <div id="pendingList"></div>
+  <div id="lista"></div>
 </div>
 
 <div class="card">
-  <h3>📋 Pacotes Entregues</h3>
-  <div id="deliveredList"></div>
+  <h3>✅ Pacotes Entregues</h3>
+  <div id="entregues"></div>
 </div>
 
-<div id="floatingLabel" class="floatingLabel"></div>
+<div id="toast" class="toast"></div>
+
+<div id="sizePopup" class="size-popup">
+  <div class="small">Escolha o tamanho do pacote</div>
+  <button class="P">P</button>
+  <button class="M">M</button>
+  <button class="G">G</button>
+</div>
 
 <script>
-/* CONFIG */
-const STORAGE_KEY='FACILITA_DB_V3';
-let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-if(!DB) DB={registros:[],contadores:{P:0,M:0,G:0},livres:{P:[],M:[],G:[]},entregues:[],codesUsed:{}};
+const STORAGE_KEY='FACILITA_ONDEMAND_DB_OVERLAY';
+let DB=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+if(!DB) DB={registros:[],contadores:{P:0,M:0,G:0},entregues:[]};
 
-/* UI refs */
-const codigoInput=document.getElementById('codigo');
-const btnP=document.getElementById('btnP');
-const btnM=document.getElementById('btnM');
-const btnG=document.getElementById('btnG');
-const pendingList=document.getElementById('pendingList');
-const deliveredList=document.getElementById('deliveredList');
-const floatingLabel=document.getElementById('floatingLabel');
+const codigoInput=document.getElementById('codigoInput');
+const lista=document.getElementById('lista');
+const entregues=document.getElementById('entregues');
+const toast=document.getElementById('toast');
+const sizePopup=document.getElementById('sizePopup');
 
-let selectedSize=null;
-
-/* UTIL */
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(DB));}
-function showFloatingLabel(msg){floatingLabel.textContent=msg; floatingLabel.style.display='block'; setTimeout(()=>{floatingLabel.style.display='none';},2000);}
-function nextNum(t){if(DB.livres[t].length){return DB.livres[t].shift();} DB.contadores[t]=(DB.contadores[t]||0)+1; return DB.contadores[t];}
+function showToast(msg,ms=1200){toast.textContent=msg;toast.style.display='block';setTimeout(()=>toast.style.display='none',ms);}
+function nextNum(t){DB.contadores[t]=(DB.contadores[t]||0)+1;return DB.contadores[t];}
 function makeLabel(t,n){return t+n;}
-
-/* Size buttons */
-btnP.addEventListener('click',()=>{selectedSize='P'; showFloatingLabel('Tamanho P selecionado');});
-btnM.addEventListener('click',()=>{selectedSize='M'; showFloatingLabel('Tamanho M selecionado');});
-btnG.addEventListener('click',()=>{selectedSize='G'; showFloatingLabel('Tamanho G selecionado');});
-
-/* Alocar pacote */
-function allocate(code){
-  if(!code) return;
-  if(DB.codesUsed[code]){ // já existe
-    const rec=DB.registros.find(r=>r.codigo===code);
-    if(rec){showFloatingLabel(`Código já cadastrado: ${rec.etiqueta}`); return;}
-  }
-  if(!selectedSize){showFloatingLabel('Escolha o tamanho antes'); return;}
-  const num=nextNum(selectedSize);
-  const label=makeLabel(selectedSize,num);
-  const rec={codigo:code,etiqueta:label,tamanho:selectedSize,num:num,ts:Date.now()};
-  DB.registros.push(rec);
-  DB.codesUsed[code]=true;
-  save();
-  refreshLists();
-  showFloatingLabel(`Gerado: ${label}`);
-  codigoInput.value='';
+function overlayLabel(etiqueta){
+  const ov=document.createElement('div');
+  ov.textContent=etiqueta;
+  ov.style.position='fixed';
+  ov.style.top='20%';
+  ov.style.left='50%';
+  ov.style.transform='translate(-50%,-50%)';
+  ov.style.background='#111';
+  ov.style.color='#fff';
+  ov.style.padding='12px 18px';
+  ov.style.borderRadius='12px';
+  ov.style.zIndex='99999';
+  ov.style.fontSize='22px';
+  ov.style.fontWeight='700';
+  document.body.appendChild(ov);
+  setTimeout(()=>document.body.removeChild(ov),2000);
 }
 
-/* Entregar pacote */
-function deliver(code){
-  const recIndex=DB.registros.findIndex(r=>r.codigo===code);
-  if(recIndex===-1){showFloatingLabel('Código não encontrado'); return;}
-  const rec=DB.registros.splice(recIndex,1)[0];
+function allocate(code,t){
+  if(!code) return;
+  const exist=DB.registros.find(r=>r.codigo===code);
+  if(exist) return exist;
+  const n=nextNum(t);
+  const et=makeLabel(t,n);
+  const rec={codigo:code,etiqueta:et,tamanho:t,ts:Date.now()};
+  DB.registros.push(rec);
+  save();
+  refreshLists();
+  overlayLabel(et);
+  return rec;
+}
+
+function markDelivered(code){
+  const rec=DB.registros.find(r=>r.codigo===code);
+  if(!rec) return showToast('Código não encontrado');
+  DB.registros=DB.registros.filter(r=>r.codigo!==code);
   DB.entregues.push(rec);
   save();
   refreshLists();
-  showFloatingLabel(`Pacote entregue: ${rec.etiqueta}`);
+  overlayLabel('Entregue: '+rec.etiqueta);
 }
 
-/* Refresh lists */
 function refreshLists(){
-  pendingList.innerHTML='';
+  lista.innerHTML='';
   DB.registros.forEach(r=>{
-    const div=document.createElement('div');
-    div.className='item';
-    div.innerHTML=`<div><div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho}</div></div>
-      <div class="actions"><button onclick="deliver('${r.codigo}')">Entregar</button></div>`;
-    pendingList.appendChild(div);
+    const div=document.createElement('div');div.className='item';
+    div.innerHTML=`<div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho}</div>
+      <div class="actions"><button onclick="markDelivered('${r.codigo}')">Entregar</button></div>`;
+    lista.appendChild(div);
   });
-  deliveredList.innerHTML='';
+  entregues.innerHTML='';
   DB.entregues.forEach(r=>{
-    const div=document.createElement('div');
-    div.className='item';
-    div.innerHTML=`<div><div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho}</div></div>`;
-    deliveredList.appendChild(div);
+    const div=document.createElement('div');div.className='item';
+    div.innerHTML=`<div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho}</div>`;
+    entregues.appendChild(div);
   });
 }
 
-/* Input listener (leitor externo ou digitação) */
-codigoInput.addEventListener('change',(e)=>{
-  const code=e.target.value.trim();
-  if(!code) return;
-  const exists=DB.registros.find(r=>r.codigo===code);
-  if(exists){ // cliente chegou retirar
-    deliver(code);
-  }else{
-    allocate(code);
+function promptSize(code){
+  sizePopup.style.display='flex';
+  const buttons=sizePopup.querySelectorAll('button');
+  buttons.forEach(btn=>{
+    btn.onclick=()=>{
+      allocate(code,btn.textContent);
+      sizePopup.style.display='none';
+      codigoInput.value='';
+      codigoInput.focus();
+    };
+  });
+}
+
+// captura do leitor externo (simula teclado)
+codigoInput.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    const code=codigoInput.value.trim();
+    if(!code) return;
+    // verifica se já foi entregue
+    const recDelivered=DB.entregues.find(r=>r.codigo===code);
+    if(recDelivered){
+      overlayLabel('Pacote já retirado: '+recDelivered.etiqueta);
+      codigoInput.value='';
+      return;
+    }
+    // verifica se já existe (retirada)
+    const recPending=DB.registros.find(r=>r.codigo===code);
+    if(recPending){
+      overlayLabel('Pacote pendente: '+recPending.etiqueta);
+      codigoInput.value='';
+      return;
+    }
+    // se não existe, pede tamanho e gera etiqueta
+    promptSize(code);
   }
 });
 
-/* init */
 refreshLists();
 </script>
-
 </body>
 </html>
