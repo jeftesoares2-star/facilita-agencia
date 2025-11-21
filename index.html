@@ -3,218 +3,339 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Facilita Agência — ON DEMAND</title>
+<title>Facilita Agência — Entradas & Retiradas</title>
 <meta name="theme-color" content="#06b6d4">
 <style>
-:root{--bg:#071228;--card:#0f172a;--accent:#06b6d4;--muted:#94a3b8;--white:#eef2ff}
+:root{
+  --bg:#071228; --card:#0f172a; --accent:#06b6d4; --muted:#94a3b8; --white:#eef2ff;
+  --p-color:#16a34a; --m-color:#2563eb; --g-color:#dc2626;
+}
+*{box-sizing:border-box}
 body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--white);padding:12px}
 h1{font-size:20px;margin:0 0 8px 0}
-.card{background:#0f172a;padding:12px;border-radius:10px;margin-top:12px}
+.card{background:var(--card);padding:12px;border-radius:10px;margin-top:12px}
 .btn-row{display:flex;gap:8px;justify-content:space-between;margin-bottom:10px}
-.big-btn{flex:1;padding:12px;border-radius:10px;border:0;font-weight:700;font-size:17px;cursor:pointer;transition:0.2s}
-.big-btn:hover{opacity:0.85}
-.P{background:#16a34a;color:#061a10}
-.M{background:#2563eb;color:#eaf2ff}
-.G{background:#dc2626;color:#fff}
-input, button {width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:16px}
+.big-btn{flex:1;padding:12px;border-radius:10px;border:0;font-weight:700;font-size:16px;cursor:pointer}
+.big-btn:active{transform:translateY(1px)}
+.bsize{padding:10px;border-radius:8px;border:0;font-weight:700;font-size:15px;cursor:pointer}
+.P{background:var(--p-color);color:#06210a}
+.M{background:var(--m-color);color:#eaf2ff}
+.G{background:var(--g-color);color:#fff}
+input, select, button {width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:15px}
 .small{color:var(--muted);font-size:13px;margin-top:6px}
-.item{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
-.label{font-weight:700;font-size:20px}
-.muted{color:var(--muted);font-size:13px}
-.row{display:flex;gap:8px}
+.item{background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
+.label{font-weight:700;font-size:18px}
+.row{display:flex;gap:8px;align-items:center}
 .actions button{padding:8px;border-radius:8px;border:0;background:#1f2937;color:#fff;cursor:pointer}
-#lista{max-height:260px;overflow:auto;margin-top:8px}
+#lista, #entregues{max-height:300px;overflow:auto;margin-top:8px}
 .danger{background:#7f1d1d;color:#fff;padding:8px;border-radius:8px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111;padding:10px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);display:none;z-index:9999}
+.overlay{
+  position:fixed;left:50%;top:18%;transform:translateX(-50%);z-index:9998;
+  background:rgba(0,0,0,0.75);padding:18px;border-radius:12px;min-width:260px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.6);
+  display:none;
+}
+.overlay .bigLabel{font-size:48px;font-weight:900;margin:6px 0}
+.overlay .sub{font-size:14px;color:var(--muted)}
+.filter-row{display:flex;gap:8px;margin-top:8px}
+.badge{padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.03);font-weight:700}
+.faded{opacity:0.6;font-size:13px;margin-top:6px}
+.focus-ring{outline:3px solid rgba(255,255,255,0.04);border-radius:8px}
 </style>
 </head>
 <body>
-<h1>📦 Facilita Agência — ON DEMAND</h1>
+  <h1>📦 Facilita Agência — Entradas & Retiradas</h1>
 
-<div class="card">
-  <div class="small">Código detectado / campo manual</div>
-  <input id="codigo" placeholder="Digite, dite ou bipar o código" inputmode="numeric" maxlength="24"/>
-  <div id="sizeSelection" class="btn-row" style="margin-top:8px; display:none;">
-    <button id="btnP" class="big-btn P">P</button>
-    <button id="btnM" class="big-btn M">M</button>
-    <button id="btnG" class="big-btn G">G</button>
+  <div class="card">
+    <div class="small">Campo de leitura (mantenha o leitor apontado aqui). O app captura automaticamente o ID quando você bipar no Mercado Livre.</div>
+    <input id="codigo" placeholder="Bipe aqui — ID do pacote Mercado Livre" inputmode="numeric" autocomplete="off" />
+    <div class="small faded">Se o ID já estiver cadastrado, aparecerá a etiqueta flutuante para finalizar a retirada.</div>
+    <div style="margin-top:10px" class="filter-row">
+      <button id="btnImport" class="big-btn" style="flex:1;background:#094;display:none">Import</button>
+      <button id="btnExport" class="big-btn" style="flex:1;background:#0ea5a1;color:#012">Exportar CSV</button>
+      <button id="btnBackup" class="big-btn" style="flex:1;background:#111827">Backup JSON</button>
+      <button id="btnResetUI" class="big-btn danger" style="flex:1">Resetar</button>
+    </div>
   </div>
-  <div id="out" class="small" style="margin-top:6px"></div>
-</div>
 
-<div class="card">
-  <h3>🔎 Buscar por parte do código</h3>
-  <input id="busca" placeholder="Parte do código"/>
-  <div class="row" style="margin-top:8px">
-    <button id="btnBusca">Buscar</button>
-    <button id="btnClearSearch" class="big-btn" style="flex:0.6;background:#374151">Limpar</button>
+  <div class="card">
+    <h3 style="margin:0">📋 Pendentes</h3>
+    <div id="lista"></div>
   </div>
-  <div id="resultados"></div>
-</div>
 
-<div class="card">
-  <h3>📋 Registros</h3>
-  <div id="lista"></div>
-  <div style="margin-top:8px" class="row">
-    <button id="btnExport">Exportar CSV</button>
-    <button id="btnBackup">Backup (baixar JSON)</button>
-    <button id="btnResetUI" class="danger">Resetar (protegido)</button>
+  <div class="card">
+    <h3 style="margin:0">📋 Entregues</h3>
+    <div id="entregues"></div>
   </div>
-</div>
 
-<input type="file" id="importFile" accept="application/json" style="display:none"/>
-<div id="toast" class="toast"></div>
+  <div id="overlay" class="overlay" role="dialog" aria-modal="true">
+    <div id="ov-size" class="sub faded"></div>
+    <div id="ov-label" class="bigLabel">M1</div>
+    <div id="ov-code" class="sub"></div>
+    <div style="margin-top:10px" class="row">
+      <button id="btnFinalize" class="big-btn" style="flex:1;background:#16a34a;color:#012;margin-right:6px">Finalizar Retirada</button>
+      <button id="btnCancel" class="big-btn" style="flex:1;background:#dc2626">Cancelar</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
 
 <script>
-const RESET_PASSWORD = "4608";
-const STORAGE_KEY = 'FACILITA_ONDEMAND_DB_FINAL';
+/* ---------- Config ---------- */
+const STORAGE_KEY = 'FACILITA_AGENCY_V1';
+const RESET_PASSWORD = '4608';
 
+/* ---------- DB ---------- */
 let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-if(!DB) DB = { registros: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, lastUndo:null, undoData:null };
+if(!DB){
+  DB = {
+    registros: [],      // pendentes: {codigo, etiqueta, tamanho, num, ts}
+    entregues: [],      // entregues: same shape
+    contadores: {P:0, M:0, G:0}, // next counters (simple increment)
+    livres: {P:[], M:[], G:[]},  // recycled numbers available per size
+    usedIds: []         // all package IDs that already entered (cannot reenter)
+  };
+}
 
+/* ---------- UI refs ---------- */
 const codigoInput = document.getElementById('codigo');
-const sizeSelection = document.getElementById('sizeSelection');
-const btnP = document.getElementById('btnP');
-const btnM = document.getElementById('btnM');
-const btnG = document.getElementById('btnG');
 const lista = document.getElementById('lista');
+const entreguesDiv = document.getElementById('entregues');
+const overlay = document.getElementById('overlay');
+const ovLabel = document.getElementById('ov-label');
+const ovCode = document.getElementById('ov-code');
+const ovSize = document.getElementById('ov-size');
+const btnFinalize = document.getElementById('btnFinalize');
+const btnCancel = document.getElementById('btnCancel');
 const toast = document.getElementById('toast');
 const btnExport = document.getElementById('btnExport');
 const btnBackup = document.getElementById('btnBackup');
 const btnResetUI = document.getElementById('btnResetUI');
-const importFile = document.getElementById('importFile');
-const buscaInput = document.getElementById('busca');
-const btnBusca = document.getElementById('btnBusca');
-const btnClearSearch = document.getElementById('btnClearSearch');
-const resultados = document.getElementById('resultados');
 
-let lastDetected = null;
-
+/* ---------- Helpers ---------- */
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
-function pad(n){ return String(n).padStart(4,'0'); }
-function makeLabel(t,n){ return t + pad(n); }
 function showToast(msg, ms=1200){ toast.textContent = msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none', ms); }
 function vibrate(ms=40){ if(navigator.vibrate) navigator.vibrate(ms); }
 
+/* get next number, using recycled if available */
 function nextNum(t){
-  if(DB.livres[t].length){ DB.livres[t].sort((a,b)=>a-b); return DB.livres[t].shift(); }
+  if(DB.livres[t] && DB.livres[t].length){
+    DB.livres[t].sort((a,b)=>a-b);
+    return DB.livres[t].shift();
+  }
   DB.contadores[t] = (DB.contadores[t]||0) + 1;
   return DB.contadores[t];
 }
 
-function allocate(code, t){
-  if(!code) return null;
-  const exist = DB.registros.find(r => r.codigo === code && !r.entregue);
-  if(exist) return exist;
-  const n = nextNum(t);
-  const et = makeLabel(t,n);
-  const rec = {codigo: code, etiqueta: et, tamanho: t, num: n, entregue:false, ts: Date.now()};
+/* format etiqueta: prefix + number (no leading zeros) */
+function makeEtiqueta(t, n){
+  return t + String(n);
+}
+
+/* find pending by package ID */
+function findPendingByCode(code){
+  return DB.registros.find(r=>r.codigo === code);
+}
+
+/* already used? (entered before) */
+function isUsedId(code){
+  return DB.usedIds.includes(code) || DB.entregues.find(e=>e.codigo===code) || DB.registros.find(r=>r.codigo===code);
+}
+
+/* ---------- Core flows ---------- */
+
+/* 1) Handle scanned code (Enter or input event) */
+let inputTimeout = null;
+codigoInput.addEventListener('input', (e)=>{
+  // Many scanners send full code quickly; we wait tiny debounce then process
+  if(inputTimeout) clearTimeout(inputTimeout);
+  inputTimeout = setTimeout(()=>processScannedCode(codigoInput.value.trim()), 120);
+});
+
+/* Also process on Enter (some scanners send Enter) */
+codigoInput.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    processScannedCode(codigoInput.value.trim());
+  }
+});
+
+/* Main scanned-code handler */
+function processScannedCode(code){
+  if(!code) return;
+  // If code already in pendentes => show overlay to finalize
+  const pending = findPendingByCode(code);
+  if(pending){
+    showOverlayForPending(pending);
+    codigoInput.value=''; codigoInput.focus();
+    return;
+  }
+  // If code used already in the past (entregue or usedIds) => block
+  if(DB.usedIds.includes(code) || DB.entregues.find(e=>e.codigo===code)){
+    alert('Esse ID já foi processado anteriormente e não pode ser registrado novamente.');
+    codigoInput.value=''; codigoInput.focus();
+    return;
+  }
+  // New incoming package: ask size and create etiqueta
+  promptSizeThenCreate(code);
+}
+
+/* Prompt size selection (simple modal using prompt or nicer UI) */
+function promptSizeThenCreate(code){
+  // Use a lightweight selection UI instead of prompt for speed:
+  const choice = window.prompt('Novo pacote detectado. Digite o tamanho: P, M ou G', 'M');
+  if(!choice) { codigoInput.value=''; codigoInput.focus(); return; }
+  const t = String(choice).trim().toUpperCase();
+  if(!['P','M','G'].includes(t)){ alert('Tamanho inválido. Use P, M ou G.'); codigoInput.value=''; codigoInput.focus(); return; }
+  createPending(code, t);
+}
+
+/* Create pending record */
+function createPending(code, size){
+  // mark usedId immediately so cannot re-enter
+  DB.usedIds.push(code);
+  const num = nextNum(size);
+  const etiqueta = makeEtiqueta(size, num);
+  const rec = {codigo: code, etiqueta: etiqueta, tamanho: size, num: num, ts: Date.now()};
   DB.registros.push(rec);
   save();
-  refreshList();
-  showToast('Gerado ' + et); vibrate(30);
-  return rec;
+  refreshLists();
+  showFloatingEtiqueta(rec);
+  showToast('Etiqueta gerada: ' + etiqueta);
+  codigoInput.value='';
+  codigoInput.focus();
 }
 
-function refreshList(){
-  lista.innerHTML = '';
-  DB.registros.slice().reverse().forEach(r=>{
-    const div = document.createElement('div'); div.className='item';
-    div.innerHTML = `<div><div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho} • ${r.entregue? 'Entregue':'Pendente'}</div></div>
-      <div class="actions"><button onclick="entregar('${r.etiqueta}')">Entregar</button></div>`;
-    lista.appendChild(div);
-  });
+/* Show floating big etiqueta so operator can write it on the package */
+function showFloatingEtiqueta(rec){
+  ovLabel.textContent = rec.etiqueta;
+  ovCode.textContent = 'ID: ' + rec.codigo;
+  ovSize.textContent = 'Tamanho: ' + rec.tamanho;
+  // colorize by size
+  if(rec.tamanho === 'P') ovLabel.style.color = 'var(--p-color)';
+  else if(rec.tamanho === 'M') ovLabel.style.color = 'var(--m-color)';
+  else ovLabel.style.color = 'var(--g-color)';
+  // Temporarily show overlay for a short time (and permit manual finalize)
+  overlay.style.display = 'block';
+  // Hide automatically after 4s but keep option to finalize manually
+  setTimeout(()=>{ if(overlay.style.display === 'block') hideOverlay(); }, 4000);
 }
 
-function entregar(et){
-  const rec = DB.registros.find(r => r.etiqueta === et);
-  if(!rec) return alert('Não encontrado');
-  if(rec.entregue) return alert('Já entregue');
-  rec.entregue = true;
+/* Show overlay for pending (when bipado at retirada) */
+let currentOverlayRec = null;
+function showOverlayForPending(rec){
+  currentOverlayRec = rec;
+  ovLabel.textContent = rec.etiqueta;
+  ovCode.textContent = 'ID: ' + rec.codigo;
+  ovSize.textContent = 'Tamanho: ' + rec.tamanho + ' (pendente)';
+  if(rec.tamanho === 'P') ovLabel.style.color = 'var(--p-color)';
+  else if(rec.tamanho === 'M') ovLabel.style.color = 'var(--m-color)';
+  else ovLabel.style.color = 'var(--g-color)';
+  overlay.style.display = 'block';
+  btnFinalize.focus();
+}
+
+/* Hide overlay */
+function hideOverlay(){
+  overlay.style.display = 'none';
+  currentOverlayRec = null;
+}
+
+/* Finalize retirada (entregar) */
+btnFinalize.addEventListener('click', ()=>{
+  if(!currentOverlayRec) {
+    // If overlay shown from creation, we may finalize latest created rec
+    // But prefer to not auto-finalize on create. So do nothing.
+    hideOverlay();
+    return;
+  }
+  const code = currentOverlayRec.codigo;
+  // Find index in registros
+  const idx = DB.registros.findIndex(r=>r.codigo === code);
+  if(idx === -1){ alert('Registro não encontrado (já entregue?)'); hideOverlay(); return; }
+  const rec = DB.registros.splice(idx,1)[0];
+  // move to entregues
+  DB.entregues.push(Object.assign({}, rec, {deliveredAt: Date.now()}));
+  // recycle etiqueta number for that size
   DB.livres[rec.tamanho].push(rec.num);
-  save(); refreshList(); showToast('Entregue ' + et);
+  save(); refreshLists();
+  showToast('Retirada finalizada: ' + rec.etiqueta);
+  hideOverlay();
+  codigoInput.value=''; codigoInput.focus();
+});
+
+/* Cancel overlay */
+btnCancel.addEventListener('click', ()=>{ hideOverlay(); codigoInput.value=''; codigoInput.focus(); });
+
+/* ---------- UI rendering ---------- */
+function refreshLists(){
+  // pendentes
+  lista.innerHTML = '';
+  if(DB.registros.length === 0){
+    lista.innerHTML = '<div class="small faded">Nenhum pacote pendente.</div>';
+  } else {
+    DB.registros.slice().reverse().forEach(r=>{
+      const div = document.createElement('div'); div.className='item';
+      div.innerHTML = `<div><div class="label">${r.etiqueta}</div><div class="small">ID: ${r.codigo} • ${new Date(r.ts).toLocaleString()}</div></div>
+        <div class="actions"><button onclick="btnShowOverlay('${r.codigo}')" class="actions-btn">Visualizar</button></div>`;
+      lista.appendChild(div);
+    });
+  }
+  // entregues
+  entreguesDiv.innerHTML = '';
+  if(DB.entregues.length === 0){
+    entreguesDiv.innerHTML = '<div class="small faded">Nenhum pacote entregue.</div>';
+  } else {
+    DB.entregues.slice().reverse().forEach(r=>{
+      const div = document.createElement('div'); div.className='item';
+      div.innerHTML = `<div><div class="label">${r.etiqueta}</div><div class="small">ID: ${r.codigo} • ${r.tamanho}</div></div>`;
+      entreguesDiv.appendChild(div);
+    });
+  }
 }
-window.entregar = entregar;
 
-codigoInput.addEventListener('input', ()=>{
-  const code = codigoInput.value.trim();
-  if(!code || code === lastDetected) return;
-  lastDetected = code;
-  sizeSelection.style.display='flex';
-});
+/* global helper to show overlay from list button */
+window.btnShowOverlay = function(code){
+  const rec = findPendingByCode(code);
+  if(rec) showOverlayForPending(rec);
+}
 
-[btnP, btnM, btnG].forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    const code = codigoInput.value.trim();
-    if(!code) return;
-    const tamanho = btn.textContent;
-    allocate(code, tamanho);
-    codigoInput.value = '';
-    sizeSelection.style.display='none';
-    lastDetected = null;
-  });
-});
-
+/* ---------- Export / Backup / Reset ---------- */
 btnExport.addEventListener('click', ()=>{
-  const rows = [['clientCode','etiqueta','tamanho','num','entregue','ts']];
-  DB.registros.forEach(r=>rows.push([r.codigo,r.etiqueta,r.tamanho,r.num,r.entregue,r.ts]));
-  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const rows = [['codigo','etiqueta','tamanho','num','ts','status']];
+  DB.registros.forEach(r=>rows.push([r.codigo,r.etiqueta,r.tamanho,r.num,r.ts,'pendente']));
+  DB.entregues.forEach(r=>rows.push([r.codigo,r.etiqueta,r.tamanho,r.num,r.deliveredAt || r.ts,'entregue']));
+  const csv = rows.map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv],{type:'text/csv'}); const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download='facilita-agencia.csv'; a.click(); URL.revokeObjectURL(url);
+  const a = document.createElement('a'); a.href=url; a.download='facilita-agencia.csv'; a.click(); URL.revokeObjectURL(url);
 });
 
 btnBackup.addEventListener('click', ()=>{
   const data = JSON.stringify(DB);
   const blob = new Blob([data],{type:'application/json'}); const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download='facilita-agencia-backup.json'; a.click(); URL.revokeObjectURL(url);
+  const a = document.createElement('a'); a.href=url; a.download='facilita-agencia-backup.json'; a.click(); URL.revokeObjectURL(url);
 });
 
 btnResetUI.addEventListener('click', ()=>{
   const pass = prompt('Senha para reset:');
   if(pass !== RESET_PASSWORD){ alert('Senha inválida'); return; }
-  const confirmText = prompt('Digite a frase de confirmação: QUERO RESETAR TUDO');
-  if(confirmText !== 'QUERO RESETAR TUDO'){ alert('Confirmação incorreta'); return; }
-  DB.lastUndo = Date.now();
-  DB.undoData = JSON.stringify(DB);
-  localStorage.setItem(STORAGE_KEY + '_PRE_RESET', DB.undoData);
-  DB = { registros: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, lastUndo: DB.lastUndo, undoData: DB.undoData };
-  save(); refreshList();
-  showToast('Reset feito.');
+  const confirmText = prompt('Digite CONFIRMAR para resetar todos os dados');
+  if(confirmText !== 'CONFIRMAR'){ alert('Confirmação incorreta'); return; }
+  DB = { registros: [], entregues: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, usedIds:[] };
+  save(); refreshLists(); showToast('Sistema reiniciado (limpo)');
 });
 
-importFile.addEventListener('change', (e)=>{
-  const f = e.target.files[0]; if(!f) return;
-  const reader = new FileReader();
-  reader.onload = function(){
-    try{
-      const j = JSON.parse(reader.result);
-      if(j.registros && confirm('Importar e substituir dados atuais?')){
-        DB = j; save(); refreshList(); alert('Importado');
-      } else alert('Arquivo inválido');
-    }catch(err){ alert('Erro ao importar'); }
-  };
-  reader.readAsText(f);
-});
+/* ---------- Import JSON (drag & drop or file) ---------- */
+document.getElementById('btnImport')?.addEventListener('click', ()=>{ document.getElementById('fileImport')?.click(); });
 
-btnBusca.addEventListener('click', ()=>{
-  const q = buscaInput.value.trim();
-  resultados.innerHTML='';
-  if(!q) return resultados.innerHTML='<div class="small">Digite algo.</div>';
-  const matches = DB.registros.filter(r => r.codigo.includes(q));
-  if(matches.length===0) return resultados.innerHTML='<div class="small">Nenhum encontrado.</div>';
-  matches.forEach(r=>{
-    const d = document.createElement('div'); d.className='item';
-    d.innerHTML = `<div><b>${r.etiqueta}</b><div class="small">${r.codigo} • ${r.entregue? 'Entregue':'Pendente'}</div></div>
-      <div><button onclick="entregar('${r.etiqueta}')">Entregar</button></div>`;
-    resultados.appendChild(d);
-  });
-});
+/* ---------- Init ---------- */
+refreshLists();
+/* focus input for immediate scanning */
+setTimeout(()=>{ codigoInput.focus(); }, 300);
 
-btnClearSearch.addEventListener('click', ()=>{
-  buscaInput.value=''; resultados.innerHTML='';
-});
+/* Autosave for safety */
+setInterval(()=>{ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }catch(e){} }, 2*60*1000);
 
-refreshList();
 </script>
 </body>
 </html>
