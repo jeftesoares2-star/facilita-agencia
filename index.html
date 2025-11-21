@@ -6,58 +6,68 @@
 <title>Facilita Agência — ON DEMAND</title>
 <meta name="theme-color" content="#06b6d4">
 <style>
-  :root{--bg:#071228;--card:#0f172a;--accent:#06b6d4;--muted:#94a3b8;--white:#eef2ff}
-  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--white);padding:12px}
-  h1{font-size:20px;margin:0 0 8px 0}
-  .card{background:#0f172a;padding:12px;border-radius:10px;margin-top:12px}
-  .btn-row{display:flex;gap:8px;justify-content:space-between;margin-bottom:10px}
-  .big-btn{flex:1;padding:12px;border-radius:10px;border:0;font-weight:700;font-size:17px;cursor:pointer;transition:0.2s}
-  .big-btn:hover{opacity:0.85}
-  .P{background:#16a34a;color:#061a10}
-  .M{background:#2563eb;color:#eaf2ff}
-  .G{background:#dc2626;color:#fff}
-  input, button {width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:16px}
-  .small{color:var(--muted);font-size:13px;margin-top:6px}
-  .item{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
-  .label{font-weight:700;font-size:20px}
-  .muted{color:var(--muted);font-size:13px}
-  .row{display:flex;gap:8px}
-  .actions button{padding:8px;border-radius:8px;border:0;background:#1f2937;color:#fff;cursor:pointer}
-  #lista{max-height:260px;overflow:auto;margin-top:8px}
-  .danger{background:#7f1d1d;color:#fff;padding:8px;border-radius:8px}
-  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111;padding:10px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);display:none;z-index:9999}
+:root{--bg:#071228;--card:#0f172a;--accent:#06b6d4;--muted:#94a3b8;--white:#eef2ff}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--white);padding:12px}
+h1{font-size:20px;margin:0 0 8px 0}
+.card{background:#0f172a;padding:12px;border-radius:10px;margin-top:12px}
+.btn-row{display:flex;gap:8px;justify-content:space-between;margin-bottom:10px}
+.big-btn{flex:1;padding:12px;border-radius:10px;border:0;font-weight:700;font-size:17px;cursor:pointer;transition:0.2s}
+.big-btn:hover{opacity:0.85}
+.P{background:#16a34a;color:#061a10}
+.M{background:#2563eb;color:#eaf2ff}
+.G{background:#dc2626;color:#fff}
+input, button {width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:16px}
+.small{color:var(--muted);font-size:13px;margin-top:6px}
+.item{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
+.label{font-weight:700;font-size:20px}
+.muted{color:var(--muted);font-size:13px}
+.row{display:flex;gap:8px}
+.actions button{padding:8px;border-radius:8px;border:0;background:#1f2937;color:#fff;cursor:pointer}
+#lista{max-height:260px;overflow:auto;margin-top:8px}
+.danger{background:#7f1d1d;color:#fff;padding:8px;border-radius:8px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111;padding:10px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);display:none;z-index:9999}
 </style>
 </head>
 <body>
-  <h1>📦 Facilita Agência — ON DEMAND</h1>
+<h1>📦 Facilita Agência — ON DEMAND</h1>
 
-  <div class="card">
-    <div class="small">Código detectado / campo manual</div>
-    <input id="codigo" placeholder="Bipe o código do cliente" inputmode="numeric" maxlength="24" readonly/>
-    <div id="sizeSelection" class="btn-row" style="margin-top:8px; display:none;">
-      <button id="btnP" class="big-btn P">P</button>
-      <button id="btnM" class="big-btn M">M</button>
-      <button id="btnG" class="big-btn G">G</button>
-    </div>
-    <div id="out" class="small" style="margin-top:6px"></div>
+<div class="card">
+  <div class="small">Código detectado / campo manual</div>
+  <input id="codigo" placeholder="Bipe o código do cliente" inputmode="numeric" maxlength="24" readonly/>
+  <div id="sizeSelection" class="btn-row" style="margin-top:8px; display:none;">
+    <button id="btnP" class="big-btn P">P</button>
+    <button id="btnM" class="big-btn M">M</button>
+    <button id="btnG" class="big-btn G">G</button>
   </div>
+  <div id="out" class="small" style="margin-top:6px"></div>
+</div>
 
-  <div class="card">
-    <h3>📋 Registros</h3>
-    <div id="lista"></div>
-    <div style="margin-top:8px" class="row">
-      <button id="btnExport">Exportar CSV</button>
-      <button id="btnBackup">Backup (baixar JSON)</button>
-      <button id="btnResetUI" class="danger">Resetar (protegido)</button>
-    </div>
+<div class="card">
+  <h3>🔎 Buscar por parte do código</h3>
+  <input id="busca" placeholder="Parte do código"/>
+  <div class="row" style="margin-top:8px">
+    <button id="btnBusca">Buscar</button>
+    <button id="btnClearSearch" class="big-btn" style="flex:0.6;background:#374151">Limpar</button>
   </div>
+  <div id="resultados"></div>
+</div>
 
-  <input type="file" id="importFile" accept="application/json" style="display:none"/>
-  <div id="toast" class="toast"></div>
+<div class="card">
+  <h3>📋 Registros</h3>
+  <div id="lista"></div>
+  <div style="margin-top:8px" class="row">
+    <button id="btnExport">Exportar CSV</button>
+    <button id="btnBackup">Backup (baixar JSON)</button>
+    <button id="btnResetUI" class="danger">Resetar (protegido)</button>
+  </div>
+</div>
+
+<input type="file" id="importFile" accept="application/json" style="display:none"/>
+<div id="toast" class="toast"></div>
 
 <script>
 const RESET_PASSWORD = "4608";
-const STORAGE_KEY = 'FACILITA_ONDEMAND_DB_V4';
+const STORAGE_KEY = 'FACILITA_ONDEMAND_DB_FINAL';
 
 let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
 if(!DB) DB = { registros: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, lastUndo:null, undoData:null };
@@ -73,6 +83,10 @@ const btnExport = document.getElementById('btnExport');
 const btnBackup = document.getElementById('btnBackup');
 const btnResetUI = document.getElementById('btnResetUI');
 const importFile = document.getElementById('importFile');
+const buscaInput = document.getElementById('busca');
+const btnBusca = document.getElementById('btnBusca');
+const btnClearSearch = document.getElementById('btnClearSearch');
+const resultados = document.getElementById('resultados');
 
 let lastDetected = null;
 
@@ -166,6 +180,38 @@ btnResetUI.addEventListener('click', ()=>{
   DB = { registros: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, lastUndo: DB.lastUndo, undoData: DB.undoData };
   save(); refreshList();
   showToast('Reset feito.');
+});
+
+importFile.addEventListener('change', (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = function(){
+    try{
+      const j = JSON.parse(reader.result);
+      if(j.registros && confirm('Importar e substituir dados atuais?')){
+        DB = j; save(); refreshList(); alert('Importado');
+      } else alert('Arquivo inválido');
+    }catch(err){ alert('Erro ao importar'); }
+  };
+  reader.readAsText(f);
+});
+
+btnBusca.addEventListener('click', ()=>{
+  const q = buscaInput.value.trim();
+  resultados.innerHTML='';
+  if(!q) return resultados.innerHTML='<div class="small">Digite algo.</div>';
+  const matches = DB.registros.filter(r => r.codigo.includes(q));
+  if(matches.length===0) return resultados.innerHTML='<div class="small">Nenhum encontrado.</div>';
+  matches.forEach(r=>{
+    const d = document.createElement('div'); d.className='item';
+    d.innerHTML = `<div><b>${r.etiqueta}</b><div class="small">${r.codigo} • ${r.entregue? 'Entregue':'Pendente'}</div></div>
+      <div><button onclick="entregar('${r.etiqueta}')">Entregar</button></div>`;
+    resultados.appendChild(d);
+  });
+});
+
+btnClearSearch.addEventListener('click', ()=>{
+  buscaInput.value=''; resultados.innerHTML='';
 });
 
 refreshList();
