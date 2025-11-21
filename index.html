@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Facilita Agência</title>
+<title>Facilita Agência — Scanner Estável</title>
 <meta name="theme-color" content="#06b6d4">
 <style>
   :root{--bg:#071228;--card:#0f172a;--accent:#06b6d4;--muted:#94a3b8;--white:#eef2ff}
@@ -11,12 +11,13 @@
   h1{font-size:20px;margin:0 0 8px 0}
   .card{background:#0f172a;padding:12px;border-radius:10px;margin-top:12px}
   .btn-row{display:flex;gap:8px;justify-content:space-between;margin-bottom:10px}
-  .big-btn{flex:1;padding:14px;border-radius:10px;border:0;font-weight:700;font-size:18px;cursor:pointer}
+  .big-btn{flex:1;padding:12px;border-radius:10px;border:0;font-weight:700;font-size:17px;cursor:pointer}
   .P{background:#16a34a;color:#061a10}
   .M{background:#2563eb;color:#eaf2ff}
   .G{background:#dc2626;color:#fff}
   input, select, button {width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:16px}
-  #reader {width:100%;border-radius:8px;margin-top:8px;background:#000;min-height:220px}
+  #reader {width:100%;border-radius:8px;margin-top:8px;background:#000;min-height:220px;display:flex;align-items:center;justify-content:center}
+  #reader video{width:100%;height:100%;object-fit:cover;border-radius:8px}
   .small{color:var(--muted);font-size:13px;margin-top:6px}
   .item{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
   .label{font-weight:700;font-size:20px}
@@ -27,27 +28,31 @@
   .danger{background:#7f1d1d;color:#fff;padding:8px;border-radius:8px}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111;padding:10px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);display:none;z-index:9999}
   .controls{display:flex;gap:8px;flex-wrap:wrap}
+  .status{margin-top:8px;font-size:14px;color:#cbd5e1}
+  .error{color:#ffb4b4;background:#3b0f0f;padding:8px;border-radius:8px;margin-top:8px}
 </style>
 </head>
 <body>
-  <h1>📦 Facilita Agência</h1>
+  <h1>📦 Facilita Agência — Estável</h1>
 
   <div class="card">
     <div class="small">Escolha o tamanho antes de bipa</div>
     <div class="btn-row" style="margin-top:8px">
-      <button id="btnP" class="big-btn P" title="Pequeno">P<br><span class="muted">Pequeno</span></button>
-      <button id="btnM" class="big-btn M" title="Médio">M<br><span class="muted">Médio</span></button>
-      <button id="btnG" class="big-btn G" title="Grande">G<br><span class="muted">Grande</span></button>
+      <button id="btnP" class="big-btn P">P</button>
+      <button id="btnM" class="big-btn M">M</button>
+      <button id="btnG" class="big-btn G">G</button>
     </div>
     <div id="selected" class="small">Tamanho selecionado: <strong id="selText">M</strong></div>
 
     <div style="margin-top:10px" class="controls">
       <button id="btnStart" class="big-btn" style="flex:1;background:#0ea5a1;color:#021">Abrir Câmera (BIPAR)</button>
       <button id="btnStop" class="big-btn" style="flex:1;display:none;background:#374151">Parar câmera</button>
+      <button id="btnRestart" class="big-btn" style="flex:1;background:#f59e0b;color:#021;display:none">Reiniciar câmera</button>
     </div>
 
-    <div id="reader"></div>
-    <div class="small">Se a câmera não abrir, verifique permissões do site no navegador.</div>
+    <div id="reader"><div class="small">Câmera inativa</div></div>
+    <div class="small status" id="statusText">Status: Inativo</div>
+    <div id="errorBox" class="error" style="display:none"></div>
 
     <div style="margin-top:10px">
       <div class="small">Código detectado / campo manual</div>
@@ -84,17 +89,16 @@
   </div>
 
   <input type="file" id="importFile" accept="application/json" style="display:none"/>
-
   <div id="toast" class="toast"></div>
 
 <!-- html5-qrcode -->
 <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 <script>
-/* Config */
+/* CONFIG */
 const RESET_PASSWORD = "4608";
 const UNDO_WINDOW_MS = 10 * 60 * 1000;
 const AUTO_BACKUP_INTERVAL = 2 * 60 * 1000;
-const STORAGE_KEY = 'FACILITA_FINAL_DB_V2';
+const STORAGE_KEY = 'FACILITA_STABLE_DB_V1';
 
 /* DB init */
 let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
@@ -107,7 +111,10 @@ const btnG = document.getElementById('btnG');
 const selText = document.getElementById('selText');
 const btnStart = document.getElementById('btnStart');
 const btnStop = document.getElementById('btnStop');
+const btnRestart = document.getElementById('btnRestart');
 const readerDiv = document.getElementById('reader');
+const statusText = document.getElementById('statusText');
+const errorBox = document.getElementById('errorBox');
 const codigoInput = document.getElementById('codigo');
 const btnGen = document.getElementById('btnGen');
 const btnBusca = document.getElementById('btnBusca');
@@ -128,7 +135,7 @@ let scanning = false;
 let lastScanTime = 0;
 let lastDetected = null;
 
-/* util */
+/* utils */
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
 function pad(n){ return String(n).padStart(4,'0'); }
 function makeLabel(t,n){ return t + pad(n); }
@@ -169,9 +176,9 @@ function entregar(et){
 window.entregar = entregar;
 
 /* UI handlers */
-btnP.addEventListener('click', ()=>{ selected='P'; selText.textContent='P'; btnP.style.outline='3px solid rgba(255,255,255,0.06)';});
-btnM.addEventListener('click', ()=>{ selected='M'; selText.textContent='M'; btnM.style.outline='3px solid rgba(255,255,255,0.06)';});
-btnG.addEventListener('click', ()=>{ selected='G'; selText.textContent='G'; btnG.style.outline='3px solid rgba(255,255,255,0.06)';});
+btnP.addEventListener('click', ()=>{ selected='P'; selText.textContent='P'; });
+btnM.addEventListener('click', ()=>{ selected='M'; selText.textContent='M'; });
+btnG.addEventListener('click', ()=>{ selected='G'; selText.textContent='G'; });
 
 btnGen.addEventListener('click', ()=> {
   const code = codigoInput.value.trim();
@@ -273,67 +280,134 @@ function checkUndoExpiry(){
 /* autosave */
 setInterval(()=>{ try{ localStorage.setItem(STORAGE_KEY + '_AUTOSAVE', JSON.stringify(DB)); }catch(e){} }, AUTO_BACKUP_INTERVAL);
 
-/* scan handling */
-function handleDetected(text){
-  const now = Date.now();
-  if(!text) return;
-  // sanitize digits: if client codes are digits, keep digits. If mixed, keep raw
-  let raw = text.toString().trim();
-  // many barcode readers return extra chars - keep only digits if length >=8
-  const onlyDigits = raw.replace(/\D/g,'');
-  if(onlyDigits.length >= 6) raw = onlyDigits;
-  // debounce
-  if(lastDetected === raw && (now - lastScanTime) < 700) return;
-  lastDetected = raw; lastScanTime = now;
-  codigoInput.value = raw;
-  allocate(raw, selected, true);
+/* SCANNER STABLE IMPLEMENTATION */
+async function safeStopScanner(){
+  try{
+    if(!html5QrcodeScanner) return;
+    await html5QrcodeScanner.stop(); // stop camera
+    html5QrcodeScanner.clear(); // clear UI
+  }catch(e){
+    console.warn('safeStopScanner error', e);
+  } finally {
+    html5QrcodeScanner = null;
+    scanning = false;
+    btnStart.style.display='inline-block';
+    btnStop.style.display='none';
+    btnRestart.style.display='none';
+    readerDiv.innerHTML = '<div class="small">Câmera inativa</div>';
+    statusText.textContent = 'Status: Inativo';
+  }
 }
 
-/* start/stop QR */
-async function startScanner(){
-  if(scanning) return;
-  // build config to support QR and common barcodes
-  const formats = [
-    Html5QrcodeSupportedFormats.QR_CODE,
-    Html5QrcodeSupportedFormats.CODE_128,
-    Html5QrcodeSupportedFormats.EAN_13,
-    Html5QrcodeSupportedFormats.CODE_39,
-    Html5QrcodeSupportedFormats.UPC_A
-  ];
-  const config = { fps: 10, qrbox: false, formatsToSupport: formats };
-  html5QrcodeScanner = new Html5Qrcode(/* element id */ "reader", /* verbose= */ false);
+async function safeStartScanner(){
+  // prevent double start
+  if(scanning) { showToast('Scanner já iniciado'); return; }
+  errorBox.style.display='none';
+  statusText.textContent = 'Status: Inicializando câmera...';
+  readerDiv.innerHTML = '';
+  // create placeholder container
+  const el = document.createElement('div'); el.id='readerInner'; el.style.width='100%'; el.style.minHeight='220px'; readerDiv.appendChild(el);
+
+  // pre-check camera permission by requesting media (helps MIUI)
   try{
+    await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    // immediately stop the stream we just opened - only a permissions warmup
+    try{ const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); s.getTracks().forEach(t=>t.stop()); }catch(e){ /* ignore */ }
+  }catch(e){
+    // user denied or camera not available
+    errorBox.style.display='block';
+    errorBox.textContent = 'Permissão de câmera negada ou câmera indisponível. Verifique permissões do navegador.';
+    statusText.textContent = 'Status: Erro de permissão';
+    readerDiv.innerHTML = '<div class="small">Câmera inativa</div>';
+    return;
+  }
+
+  // create new scanner instance
+  try{
+    const formats = [
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.UPC_A
+    ];
+    html5QrcodeScanner = new Html5Qrcode("readerInner", { verbose:false });
+    // small guard: ensure previous instance stopped
     await html5QrcodeScanner.start(
-      { facingMode: "environment" },
-      config,
-      (decodedText, decodedResult) => { handleDetected(decodedText); },
-      (error) => { /* ignore minor scan errors */ }
+      { facingMode: { exact: "environment" } }, // prefer back camera
+      { fps: 10, qrbox: false, formatsToSupport: formats },
+      (decodedText, decodedResult) => {
+        handleDetected(decodedText);
+      },
+      (errorMessage) => {
+        // ignore frequent minor errors, but log
+        //console.debug('scan error', errorMessage);
+      }
     );
     scanning = true;
     btnStart.style.display='none';
     btnStop.style.display='inline-block';
+    btnRestart.style.display='inline-block';
+    statusText.textContent = 'Status: Escaneando...';
     showToast('Câmera iniciada');
   }catch(err){
-    alert('Erro ao iniciar câmera: ' + (err && err.message ? err.message : err));
+    // fallback: try without exact constraint (some devices don't accept exact)
+    console.warn('start failed with exact env, trying without exact', err);
+    try{
+      await html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: false, formatsToSupport: formats },
+        (decodedText)=> handleDetected(decodedText),
+        ()=>{}
+      );
+      scanning = true;
+      btnStart.style.display='none';
+      btnStop.style.display='inline-block';
+      btnRestart.style.display='inline-block';
+      statusText.textContent = 'Status: Escaneando...';
+      showToast('Câmera iniciada (fallback)');
+    }catch(e2){
+      safeStopScanner();
+      errorBox.style.display='block';
+      errorBox.textContent = 'Erro ao iniciar câmera: ' + (e2 && e2.message ? e2.message : e2);
+      console.error('start error', e2);
+    }
   }
 }
 
-function stopScanner(){
-  if(!scanning || !html5QrcodeScanner) return;
-  html5QrcodeScanner.stop().then(()=>{ html5QrcodeScanner.clear(); scanning=false; btnStart.style.display='inline-block'; btnStop.style.display='none'; showToast('Câmera parada'); }).catch(e=>{ console.warn(e); });
+/* when detected */
+let lastAllocTime = 0;
+function handleDetected(text){
+  const now = Date.now();
+  if(!text) return;
+  let raw = String(text).trim();
+  const onlyDigits = raw.replace(/\D/g,'');
+  if(onlyDigits.length >= 6) raw = onlyDigits;
+  if(lastDetected === raw && (now - lastAllocTime) < 700) return;
+  lastDetected = raw; lastAllocTime = now;
+  codigoInput.value = raw;
+  allocate(raw, selected, true);
 }
 
-btnStart.addEventListener('click', startScanner);
-btnStop.addEventListener('click', stopScanner);
+/* Start/Stop buttons */
+btnStart.addEventListener('click', async ()=> {
+  errorBox.style.display='none';
+  await safeStartScanner();
+});
+btnStop.addEventListener('click', async ()=> {
+  await safeStopScanner();
+});
+btnRestart.addEventListener('click', async ()=> {
+  await safeStopScanner();
+  await safeStartScanner();
+});
 
-/* init */
+/* init UI and restore */
 refreshList();
 checkUndoExpiry();
 
-/* load from storage (on open) */
-(function(){
-  try{ const pre = localStorage.getItem(STORAGE_KEY + '_AUTOSAVE'); if(pre){ /* optional restore prompt */ } }catch(e){}
-})();
+/* load autosave prompt suppressed (optional) */
+(function(){ try{ const pre = localStorage.getItem(STORAGE_KEY + '_AUTOSAVE'); }catch(e){} })();
 
 </script>
 </body>
