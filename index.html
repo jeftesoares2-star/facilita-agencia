@@ -6,223 +6,190 @@
 <title>Facilita Agência — ON DEMAND</title>
 <meta name="theme-color" content="#06b6d4">
 <style>
-  :root{--bg:#071228;--card:#0f172a;--accent:#06b6d4;--muted:#94a3b8;--white:#eef2ff}
-  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--white);padding:12px}
-  h1{font-size:20px;margin:0 0 8px 0}
-  .card{background:#0f172a;padding:12px;border-radius:10px;margin-top:12px}
-  .btn-row{display:flex;gap:8px;justify-content:space-between;margin-bottom:10px}
-  .big-btn{flex:1;padding:12px;border-radius:10px;border:0;font-weight:700;font-size:17px;cursor:pointer}
-  .P{background:#16a34a;color:#061a10}
-  .M{background:#2563eb;color:#eaf2ff}
-  .G{background:#dc2626;color:#fff}
-  input, select, button {width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:16px}
-  #reader {width:100%;border-radius:8px;margin-top:8px;background:#000;min-height:220px;display:flex;align-items:center;justify-content:center}
-  #reader video{width:100%;height:100%;object-fit:cover;border-radius:8px}
-  .small{color:var(--muted);font-size:13px;margin-top:6px}
-  .item{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
-  .label{font-weight:700;font-size:20px}
-  .muted{color:var(--muted);font-size:13px}
-  .row{display:flex;gap:8px}
-  .actions button{padding:8px;border-radius:8px;border:0;background:#1f2937;color:#fff}
-  #lista,#entregues{max-height:260px;overflow:auto;margin-top:8px}
-  .danger{background:#7f1d1d;color:#fff;padding:8px;border-radius:8px}
-  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111;padding:10px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);display:none;z-index:9999}
-  .controls{display:flex;gap:8px;flex-wrap:wrap}
-  .status{margin-top:8px;font-size:14px;color:#cbd5e1}
-  .error{color:#ffb4b4;background:#3b0f0f;padding:8px;border-radius:8px;margin-top:8px}
-  .floating-window{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f172a;padding:16px;border-radius:12px;z-index:999;box-shadow:0 4px 14px rgba(0,0,0,0.6);display:none;}
-  .floating-window button{margin-top:8px;}
-  a.small-link{color:var(--accent);text-decoration:none;font-size:13px}
+:root{--bg:#071228;--card:#0f172a;--accent:#06b6d4;--muted:#94a3b8;--white:#eef2ff}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--white);padding:12px}
+h1{font-size:20px;margin:0 0 8px 0}
+.card{background:#0f172a;padding:12px;border-radius:10px;margin-top:12px}
+.btn-row{display:flex;gap:8px;justify-content:space-between;margin-bottom:10px}
+.big-btn{flex:1;padding:12px;border-radius:10px;border:0;font-weight:700;font-size:17px;cursor:pointer}
+.P{background:#16a34a;color:#061a10}
+.M{background:#2563eb;color:#eaf2ff}
+.G{background:#dc2626;color:#fff}
+input, select, button {width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:16px}
+#reader {width:100%;border-radius:8px;margin-top:8px;background:#000;min-height:220px;display:flex;align-items:center;justify-content:center}
+.small{color:var(--muted);font-size:13px;margin-top:6px}
+.item{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
+.label{font-weight:700;font-size:20px}
+.muted{color:var(--muted);font-size:13px}
+.row{display:flex;gap:8px}
+.actions button{padding:8px;border-radius:8px;border:0;background:#1f2937;color:#fff}
+#lista{max-height:260px;overflow:auto;margin-top:8px}
+.danger{background:#7f1d1d;color:#fff;padding:8px;border-radius:8px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111;padding:10px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);display:none;z-index:9999}
+.status{margin-top:8px;font-size:14px;color:#cbd5e1}
+.error{color:#ffb4b4;background:#3b0f0f;padding:8px;border-radius:8px;margin-top:8px}
+.etiqueta-flutuante{
+  position:fixed;
+  top:20px;
+  right:20px;
+  background:var(--accent);
+  color:#fff;
+  padding:12px 18px;
+  border-radius:10px;
+  font-weight:700;
+  font-size:18px;
+  box-shadow:0 4px 14px rgba(0,0,0,0.4);
+  z-index:9999;
+  opacity:0.95;
+}
 </style>
 </head>
 <body>
-  <h1>📦 Facilita Agência — ON DEMAND</h1>
+<h1>📦 Facilita Agência — ON DEMAND</h1>
 
-  <div class="card">
-    <div class="small">Bipe o código do cliente para processar pacote ou retirada</div>
-    <div id="reader"><div class="small">Aguardando bipar...</div></div>
-    <div id="statusText" class="small status">Status: Inativo</div>
-    <div id="errorBox" class="error" style="display:none"></div>
+<div class="card">
+  <div class="small">Código do cliente (bipe ou digite)</div>
+  <input id="codigo" placeholder="Código do cliente" inputmode="numeric" maxlength="24" autofocus/>
+  <div class="small">Selecione o tamanho após bipar:</div>
+  <div class="btn-row" style="margin-top:8px">
+    <button id="btnP" class="big-btn P" title="Pequeno">P</button>
+    <button id="btnM" class="big-btn M" title="Médio">M</button>
+    <button id="btnG" class="big-btn G" title="Grande">G</button>
   </div>
+  <div id="selected" class="small">Tamanho selecionado: <strong id="selText">---</strong></div>
+  <button id="btnGen" class="big-btn" style="margin-top:12px;background:#0ea5a1;color:#021">Gerar etiqueta</button>
+</div>
 
-  <div class="card">
-    <h3>📋 Pacotes Recebidos</h3>
-    <div id="lista"></div>
-  </div>
+<div class="card">
+  <h3 style="margin:0">📋 Pacotes pendentes</h3>
+  <div id="lista"></div>
+</div>
 
-  <div class="card">
-    <h3>📋 Pacotes Entregues</h3>
-    <div id="entregues"></div>
-  </div>
+<div class="card">
+  <h3 style="margin:0">📋 Pacotes entregues</h3>
+  <div id="listaEntregues"></div>
+</div>
 
-  <div class="card">
-    <div class="row">
-      <button id="btnResetUI" class="danger">Resetar Dados</button>
-    </div>
-  </div>
-
-  <!-- Floating window para escolha do tamanho -->
-  <div id="sizeWindow" class="floating-window">
-    <div>Escolha o tamanho do pacote:</div>
-    <div class="row" style="margin-top:8px">
-      <button class="big-btn P" id="selP">P</button>
-      <button class="big-btn M" id="selM">M</button>
-      <button class="big-btn G" id="selG">G</button>
-    </div>
-  </div>
-
-  <!-- Floating label da etiqueta -->
-  <div id="labelWindow" class="floating-window">
-    <div id="labelText" style="font-size:22px;font-weight:bold;text-align:center;"></div>
-    <button onclick="closeLabel()">Fechar</button>
-  </div>
-
-  <div id="toast" class="toast"></div>
+<div id="toast" class="toast"></div>
 
 <script>
 const STORAGE_KEY = 'FACILITA_ONDEMAND_DB_V3';
+
 let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-if(!DB) DB = { registros: [], entregues: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, lastUndo:null, undoData:null };
+if(!DB) DB = { registros: [], contadores:{P:0,M:0,G:0}, entregues:[] };
 
+const codigoInput = document.getElementById('codigo');
+const btnGen = document.getElementById('btnGen');
+const btnP = document.getElementById('btnP');
+const btnM = document.getElementById('btnM');
+const btnG = document.getElementById('btnG');
+const selText = document.getElementById('selText');
 const lista = document.getElementById('lista');
-const entregues = document.getElementById('entregues');
+const listaEntregues = document.getElementById('listaEntregues');
 const toast = document.getElementById('toast');
-const errorBox = document.getElementById('errorBox');
-const statusText = document.getElementById('statusText');
-const btnResetUI = document.getElementById('btnResetUI');
-const sizeWindow = document.getElementById('sizeWindow');
-const labelWindow = document.getElementById('labelWindow');
-const labelText = document.getElementById('labelText');
 
-let lastDetected = null;
-let lastAllocTime = 0;
-let currentCode = null;
+let selected = null;
 
-// Utils
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
-function showToast(msg, ms=1200){ toast.textContent = msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none', ms); }
-function vibrate(ms=40){ if(navigator.vibrate) navigator.vibrate(ms); }
-function pad(n){ return n; }
-function nextNum(t){
-  if(DB.livres[t].length) return DB.livres[t].shift();
-  DB.contadores[t] = (DB.contadores[t]||0)+1;
-  return DB.contadores[t];
-}
-function makeLabel(t,n){ return t+n; }
+function showToast(msg,ms=1200){ toast.textContent=msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none',ms); }
+function makeLabel(t,n){ return t + n; }
+function nextNum(t){ DB.contadores[t] = (DB.contadores[t]||0)+1; return DB.contadores[t]; }
 
-// Alocar pacote (recebimento)
-function allocate(code, tamanho){
-  if(!code || !tamanho) return;
-  const exist = DB.registros.find(r => r.codigo===code && !r.entregue);
-  if(exist) return exist;
-  const n = nextNum(tamanho);
-  const etiqueta = makeLabel(tamanho,n);
-  const rec = {codigo: code, etiqueta, tamanho, num:n, entregue:false, ts:Date.now()};
+function showEtiquetaFlutuante(et){
+  const div = document.createElement('div');
+  div.className='etiqueta-flutuante';
+  div.textContent = et;
+  document.body.appendChild(div);
+  setTimeout(()=>div.remove(),2000);
+}
+
+// Geração de pacote
+function allocate(code,t){
+  if(!code || !t) return null;
+  const existente = DB.registros.find(r=>r.codigo===code);
+  if(existente){
+    showToast('Código já cadastrado. Para retirada, bipar novamente.');
+    showEtiquetaFlutuante(existente.etiqueta);
+    return existente;
+  }
+  const n = nextNum(t);
+  const et = makeLabel(t,n);
+  const rec = {codigo: code, etiqueta: et, tamanho: t, num: n};
   DB.registros.push(rec);
-  save(); refreshList();
-  showLabel(etiqueta);
-  showToast('Gerado '+etiqueta);
+  save();
+  refreshList();
+  showEtiquetaFlutuante(et);
   return rec;
 }
 
-// Entrega ou retirada
-function entregarPorCodigo(code){
-  // verifica se existe no registros
-  const rec = DB.registros.find(r=>r.codigo===code && !r.entregue);
-  if(!rec){
-    showToast('Nenhum pacote pendente para esse cliente');
-    return;
-  }
-  rec.entregue=true;
+// Entrega do pacote
+function entregar(codigo){
+  const idx = DB.registros.findIndex(r=>r.codigo===codigo);
+  if(idx===-1) return;
+  const rec = DB.registros.splice(idx,1)[0];
   DB.entregues.push(rec);
-  DB.registros = DB.registros.filter(r=>r.codigo!==code || r.entregue!==true);
-  save(); refreshList();
-  showLabel(rec.etiqueta);
-  showToast('Pacote entregue: '+rec.etiqueta);
+  save();
+  refreshList();
 }
 
-// Refresh listas
+// Atualiza listas
 function refreshList(){
-  lista.innerHTML=''; entregues.innerHTML='';
+  lista.innerHTML = '';
   DB.registros.slice().reverse().forEach(r=>{
     const div = document.createElement('div'); div.className='item';
-    div.innerHTML=`<div><div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho} • Pendente</div></div>
-      <div class="actions"><button onclick="entregarPorCodigo('${r.codigo}')">Entregar</button></div>`;
+    div.innerHTML = `<div><div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho}</div></div>
+      <div class="actions"><button onclick="entregar('${r.codigo}')">Entregar</button></div>`;
     lista.appendChild(div);
   });
+
+  listaEntregues.innerHTML = '';
   DB.entregues.slice().reverse().forEach(r=>{
     const div = document.createElement('div'); div.className='item';
-    div.innerHTML=`<div><div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho} • Entregue</div></div>`;
-    entregues.appendChild(div);
+    div.innerHTML = `<div><div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho}</div></div>`;
+    listaEntregues.appendChild(div);
   });
 }
 
-// Janela flutuante de escolha de tamanho
-function showSizeWindow(code){
-  currentCode=code;
-  sizeWindow.style.display='block';
-}
-function hideSizeWindow(){ sizeWindow.style.display='none';}
+// Botões de tamanho
+btnP.addEventListener('click',()=>{ selected='P'; selText.textContent='P'; });
+btnM.addEventListener('click',()=>{ selected='M'; selText.textContent='M'; });
+btnG.addEventListener('click',()=>{ selected='G'; selText.textContent='G'; });
 
-// Janela flutuante de etiqueta
-function showLabel(text){
-  labelText.textContent=text;
-  labelWindow.style.display='block';
-}
-function closeLabel(){ labelWindow.style.display='none';}
-
-// Eventos de escolha de tamanho
-document.getElementById('selP').addEventListener('click', ()=>{
-  allocate(currentCode,'P'); hideSizeWindow();
-});
-document.getElementById('selM').addEventListener('click', ()=>{
-  allocate(currentCode,'M'); hideSizeWindow();
-});
-document.getElementById('selG').addEventListener('click', ()=>{
-  allocate(currentCode,'G'); hideSizeWindow();
+// Gera etiqueta
+btnGen.addEventListener('click',()=>{
+  const code = codigoInput.value.trim();
+  if(!code){ showToast('Digite ou bipe o código'); return; }
+  if(!selected){ showToast('Selecione o tamanho'); return; }
+  allocate(code,selected);
+  codigoInput.value=''; selected=null; selText.textContent='---';
 });
 
-// Reset protegido
-btnResetUI.addEventListener('click', ()=>{
-  const pass = prompt('Senha para reset:');
-  if(pass!=='4608'){ alert('Senha inválida'); return; }
-  const confirmText=prompt('Digite a frase de confirmação: QUERO RESETAR TUDO');
-  if(confirmText!=='RESETAR'){ alert('Confirmação incorreta'); return; }
-  DB.lastUndo = Date.now();
-  DB.undoData = JSON.stringify(DB);
-  localStorage.setItem(STORAGE_KEY+'_PRE_RESET',DB.undoData);
-  DB={registros:[],entregues:[],contadores:{P:0,M:0,G:0},livres:{P:[],M:[],G:[]},lastUndo:DB.lastUndo,undoData:DB.undoData};
-  save(); refreshList();
-  showToast('Reset feito. Você tem 10 minutos para desfazer.');
-});
-
-// Simulação de bipar (substituir por leitor externo)
-function onBipar(code){
-  const now=Date.now();
-  if(lastDetected===code && (now-lastAllocTime)<700) return;
-  lastDetected=code; lastAllocTime=now;
-  
-  // Se o cliente já tem pacote pendente → entrega/retirada
-  const recPend = DB.registros.find(r=>r.codigo===code && !r.entregue);
-  if(recPend){
-    entregarPorCodigo(code);
-  } else {
-    // novo pacote → escolha tamanho
-    showSizeWindow(code);
-  }
-}
-
-// Inicialização
-refreshList();
-
-// Simulação: prompt bipar
-document.body.addEventListener('keydown', e=>{
+// Permite receber o código via teclado Scan/leitor externo
+codigoInput.addEventListener('keypress', function(e){
   if(e.key==='Enter'){
-    const code = prompt('Simular bipar código do cliente:');
-    if(code) onBipar(code.trim());
+    const code = codigoInput.value.trim();
+    if(!code) return;
+    // Verifica se o código já existe → exibe etiqueta do pacote (retirada)
+    const existente = DB.registros.find(r=>r.codigo===code);
+    if(existente){
+      showToast('Pacote para retirada encontrado!');
+      showEtiquetaFlutuante(existente.etiqueta);
+      codigoInput.value='';
+      selected=null;
+      selText.textContent='---';
+      return;
+    }
+    // Se não existe e tamanho foi selecionado → cria pacote
+    if(selected){
+      allocate(code,selected);
+      codigoInput.value=''; selected=null; selText.textContent='---';
+      return;
+    }
+    showToast('Selecione o tamanho antes de gerar um novo pacote');
   }
 });
 
+refreshList();
 </script>
 </body>
 </html>
