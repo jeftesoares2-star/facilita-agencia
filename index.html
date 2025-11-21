@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Facilita Agência — FINAL (scanner externo)</title>
+<title>Facilita Agência — ON DEMAND</title>
 <meta name="theme-color" content="#06b6d4">
 <style>
   :root{--bg:#071228;--card:#0f172a;--accent:#06b6d4;--muted:#94a3b8;--white:#eef2ff}
@@ -16,6 +16,8 @@
   .M{background:#2563eb;color:#eaf2ff}
   .G{background:#dc2626;color:#fff}
   input, select, button {width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:16px}
+  #reader {width:100%;border-radius:8px;margin-top:8px;background:#000;min-height:220px;display:flex;align-items:center;justify-content:center}
+  #reader video{width:100%;height:100%;object-fit:cover;border-radius:8px}
   .small{color:var(--muted);font-size:13px;margin-top:6px}
   .item{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
   .label{font-weight:700;font-size:20px}
@@ -27,70 +29,87 @@
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111;padding:10px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);display:none;z-index:9999}
   .controls{display:flex;gap:8px;flex-wrap:wrap}
   .status{margin-top:8px;font-size:14px;color:#cbd5e1}
+  .error{color:#ffb4b4;background:#3b0f0f;padding:8px;border-radius:8px;margin-top:8px}
+  a.small-link{color:var(--accent);text-decoration:none;font-size:13px}
 </style>
 </head>
 <body>
-  <h1>📦 Facilita Agência — ON DEMAND (Scanner Externo)</h1>
+<h1>📦 Facilita Agência — ON DEMAND</h1>
 
-  <div class="card">
-    <div class="small">Escolha o tamanho antes de gerar etiqueta</div>
-    <div class="btn-row" style="margin-top:8px">
-      <button id="btnP" class="big-btn P" title="Pequeno">P</button>
-      <button id="btnM" class="big-btn M" title="Médio">M</button>
-      <button id="btnG" class="big-btn G" title="Grande">G</button>
-    </div>
-    <div id="selected" class="small">Tamanho selecionado: <strong id="selText">M</strong></div>
+<div class="card">
+  <div class="small">Escolha o tamanho antes de bipa (apenas para referência, será aplicado no bipar)</div>
+  <div class="btn-row" style="margin-top:8px">
+    <button id="btnP" class="big-btn P" title="Pequeno">P</button>
+    <button id="btnM" class="big-btn M" title="Médio">M</button>
+    <button id="btnG" class="big-btn G" title="Grande">G</button>
+  </div>
+  <div id="selected" class="small">Tamanho selecionado: <strong id="selText">M</strong></div>
 
-    <div style="margin-top:10px" class="controls">
-      <input id="codigo" placeholder="Código do cliente (12 dígitos)" inputmode="numeric" maxlength="24" autofocus/>
-      <button id="btnGen" class="big-btn" style="margin-top:8px">Gerar etiqueta</button>
-    </div>
-
-    <div id="statusText" class="small status">Status: Pronto para scan/manual</div>
+  <div style="margin-top:10px" class="controls">
+    <button id="btnOpen" class="big-btn" style="flex:1;background:#0ea5a1;color:#021">Abrir Câmera (BIPAR)</button>
+    <button id="btnStop" class="big-btn" style="flex:1;display:none;background:#374151">Parar câmera</button>
   </div>
 
-  <div class="card">
-    <h3 style="margin:0">🔎 Buscar por parte do código</h3>
-    <div class="small">Digite os 5 primeiros, 5 últimos ou qualquer trecho</div>
-    <input id="busca" placeholder="Parte do código (ex: 03399 ou 8136)"/>
-    <div class="row" style="margin-top:8px">
-      <button id="btnBusca">Buscar</button>
-      <button id="btnClearSearch" class="big-btn" style="flex:0.6;background:#374151">Limpar</button>
+  <div id="reader"><div class="small">Câmera inativa — toque "Abrir Câmera (BIPAR)" para iniciar.</div></div>
+  <div id="statusText" class="small status">Status: Inativo</div>
+  <div id="errorBox" class="error" style="display:none"></div>
+
+  <div style="margin-top:10px">
+    <div class="small">Código detectado / campo manual</div>
+    <input id="codigo" placeholder="Código do cliente (12 dígitos)" inputmode="numeric" maxlength="24"/>
+    <div class="row">
+      <button id="btnGen" class="big-btn" style="flex:1">Gerar etiqueta</button>
+      <button id="btnImport" class="big-btn" style="flex:0.6;background:#111827">Importar JSON</button>
     </div>
-    <div id="resultados"></div>
+    <div id="out" class="small"></div>
   </div>
+</div>
 
-  <div class="card">
-    <h3 style="margin:0">📋 Registros</h3>
-    <div class="small">Últimos registros (toque em entregar para liberar número)</div>
-    <div id="lista"></div>
-    <div class="row" style="margin-top:8px">
-      <button id="btnExport">Exportar CSV</button>
-      <button id="btnBackup">Backup (baixar JSON)</button>
-      <button id="btnResetUI" class="danger">Resetar (protegido)</button>
-    </div>
-    <div class="small" style="margin-top:8px">Backup automático a cada 2 minutos; desfazer reset disponível por 10 minutos.</div>
+<div class="card">
+  <h3 style="margin:0">🔎 Buscar por parte do código</h3>
+  <div class="small">Digite os 5 primeiros, 5 últimos ou qualquer trecho</div>
+  <input id="busca" placeholder="Parte do código (ex: 03399 ou 8136)"/>
+  <div class="row" style="margin-top:8px">
+    <button id="btnBusca">Buscar</button>
+    <button id="btnClearSearch" class="big-btn" style="flex:0.6;background:#374151">Limpar</button>
   </div>
+  <div id="resultados"></div>
+</div>
 
-  <input type="file" id="importFile" accept="application/json" style="display:none"/>
-  <div id="toast" class="toast"></div>
+<div class="card">
+  <h3 style="margin:0">📋 Registros</h3>
+  <div class="small">Últimos registros (toque em entregar para liberar número)</div>
+  <div id="lista"></div>
+  <div style="margin-top:8px" class="row">
+    <button id="btnExport">Exportar CSV</button>
+    <button id="btnBackup">Backup (baixar JSON)</button>
+    <button id="btnResetUI" class="danger">Resetar (protegido)</button>
+  </div>
+  <div class="small" style="margin-top:8px">Backup automático a cada 2 minutos; desfazer reset disponível por 10 minutos.</div>
+</div>
 
+<input type="file" id="importFile" accept="application/json" style="display:none"/>
+<div id="toast" class="toast"></div>
+
+<script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 <script>
-/* CONFIG */
 const RESET_PASSWORD = "4608";
-const UNDO_WINDOW_MS = 10 * 60 * 1000;
-const AUTO_BACKUP_INTERVAL = 2 * 60 * 1000;
+const UNDO_WINDOW_MS = 10*60*1000;
+const AUTO_BACKUP_INTERVAL = 2*60*1000;
 const STORAGE_KEY = 'FACILITA_ONDEMAND_DB_V2';
 
-/* DB init */
 let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
 if(!DB) DB = { registros: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, lastUndo:null, undoData:null };
 
-/* UI refs */
 const btnP = document.getElementById('btnP');
 const btnM = document.getElementById('btnM');
 const btnG = document.getElementById('btnG');
 const selText = document.getElementById('selText');
+const btnOpen = document.getElementById('btnOpen');
+const btnStop = document.getElementById('btnStop');
+const readerDiv = document.getElementById('reader');
+const statusText = document.getElementById('statusText');
+const errorBox = document.getElementById('errorBox');
 const codigoInput = document.getElementById('codigo');
 const btnGen = document.getElementById('btnGen');
 const btnBusca = document.getElementById('btnBusca');
@@ -104,22 +123,24 @@ const btnResetUI = document.getElementById('btnResetUI');
 const importFile = document.getElementById('importFile');
 
 let selected = 'M';
+let html5QrcodeScanner = null;
+let scanning = false;
+let lastScanTime = 0;
+let lastDetected = null;
 
-/* utils */
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
 function pad(n){ return String(n).padStart(4,'0'); }
 function makeLabel(t,n){ return t + pad(n); }
 function showToast(msg, ms=1200){ toast.textContent = msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none', ms); }
+function vibrate(ms=40){ if(navigator.vibrate) navigator.vibrate(ms); }
 
-/* numbering */
 function nextNum(t){
   if(DB.livres[t].length){ DB.livres[t].sort((a,b)=>a-b); return DB.livres[t].shift(); }
   DB.contadores[t] = (DB.contadores[t]||0) + 1;
   return DB.contadores[t];
 }
 
-/* allocate */
-function allocate(code, t){
+function allocate(code, t, auto=true){
   if(!code) return null;
   const exist = DB.registros.find(r => r.codigo === code && !r.entregue);
   if(exist) return exist;
@@ -129,11 +150,10 @@ function allocate(code, t){
   DB.registros.push(rec);
   save();
   refreshList();
-  showToast('Gerado ' + et);
+  if(auto){ showToast('Gerado ' + et); vibrate(30); }
   return rec;
 }
 
-/* entregar */
 function entregar(et){
   const rec = DB.registros.find(r => r.etiqueta === et);
   if(!rec) return alert('Não encontrado');
@@ -144,7 +164,6 @@ function entregar(et){
 }
 window.entregar = entregar;
 
-/* UI handlers */
 btnP.addEventListener('click', ()=>{ selected='P'; selText.textContent='P'; });
 btnM.addEventListener('click', ()=>{ selected='M'; selText.textContent='M'; });
 btnG.addEventListener('click', ()=>{ selected='G'; selText.textContent='G'; });
@@ -152,18 +171,8 @@ btnG.addEventListener('click', ()=>{ selected='G'; selText.textContent='G'; });
 btnGen.addEventListener('click', ()=> {
   const code = codigoInput.value.trim();
   if(!code){ alert('Digite ou escaneie o código'); return; }
-  allocate(code, selected);
+  allocate(code, selected, false);
   codigoInput.value='';
-});
-
-/* permitir scanner externo via Enter */
-codigoInput.addEventListener('keydown', function(e){
-  if(e.key === 'Enter'){
-    const code = codigoInput.value.trim();
-    if(!code) return;
-    allocate(code, selected);
-    codigoInput.value='';
-  }
 });
 
 /* refresh list */
@@ -209,18 +218,11 @@ btnBackup.addEventListener('click', ()=>{
 });
 
 /* import */
-document.getElementById('btnImport')?.addEventListener('click', ()=> importFile.click());
-importFile?.addEventListener('change', (e)=>{
+btnImport.addEventListener('click', ()=> importFile.click());
+importFile.addEventListener('change', (e)=>{
   const f = e.target.files[0]; if(!f) return;
   const reader = new FileReader();
-  reader.onload = function(){ 
-    try{ 
-      const j = JSON.parse(reader.result); 
-      if(j.registros) { 
-        if(confirm('Importar e substituir dados atuais?')){ DB=j; save(); refreshList(); alert('Importado'); } 
-      } else alert('Arquivo inválido'); 
-    }catch(err){ alert('Erro ao importar'); } 
-  };
+  reader.onload = function(){ try{ const j = JSON.parse(reader.result); if(j.registros) { if(confirm('Importar e substituir dados atuais?')){ DB=j; save(); refreshList(); alert('Importado'); } } else alert('Arquivo inválido'); }catch(err){ alert('Erro ao importar'); } };
   reader.readAsText(f);
 });
 
@@ -239,7 +241,6 @@ btnResetUI.addEventListener('click', ()=>{
   checkUndoExpiry();
 });
 
-/* undo */
 function checkUndoExpiry(){
   if(!DB.lastUndo) return;
   const elapsed = Date.now() - DB.lastUndo;
@@ -260,12 +261,42 @@ function checkUndoExpiry(){
   }
 }
 
-/* autosave */
 setInterval(()=>{ try{ localStorage.setItem(STORAGE_KEY + '_AUTOSAVE', JSON.stringify(DB)); }catch(e){} }, AUTO_BACKUP_INTERVAL);
 
-/* init */
-refreshList();
-checkUndoExpiry();
-</script>
-</body>
-</html>
+/* SCANNER (on demand) */
+async function safeStartScanner(){
+  if(scanning) return;
+  errorBox.style.display='none';
+  statusText.textContent = 'Status: Inicializando câmera...';
+  readerDiv.innerHTML = '';
+  const container = document.createElement('div'); container.id='readerInner'; container.style.width='100%'; container.style.minHeight='220px'; readerDiv.appendChild(container);
+
+  try{
+    const s = await navigator.mediaDevices.getUserMedia({ video: true });
+    s.getTracks().forEach(t=>t.stop());
+  }catch(e){
+    errorBox.style.display='block';
+    errorBox.textContent = 'Permissão de câmera negada ou indisponível. Verifique permissões do site.';
+    statusText.textContent = 'Status: Erro de permissão';
+    return;
+  }
+
+  try{
+    const formats = [
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.UPC_A
+    ];
+    html5QrcodeScanner = new Html5Qrcode("readerInner", { verbose:false });
+    await html5QrcodeScanner.start(
+      { facingMode: { exact: "environment" } },
+      { fps: 10, qrbox: false, formatsToSupport: formats },
+      (decodedText) => { handleDetected(decodedText); },
+      () => {}
+    );
+    scanning = true;
+    btnOpen.style.display='none';
+    btnStop.style.display='inline-block';
+    statusText.text
