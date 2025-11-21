@@ -1,238 +1,340 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>Facilita Agência - Scanner</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Facilita Agência</title>
+<meta name="theme-color" content="#06b6d4">
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        padding: 15px;
-        background: #f1f1f1;
-        text-align: center;
-    }
-
-    h2 { font-size: 22px; }
-
-    .size-buttons button {
-        font-size: 22px;
-        padding: 15px 30px;
-        margin: 8px;
-        border-radius: 10px;
-        border: none;
-        color: white;
-        font-weight: bold;
-    }
-    #btnP { background: #3b83f6; }
-    #btnM { background: #f6a23b; }
-    #btnG { background: #e63b3b; }
-
-    #video {
-        width: 100%;
-        max-width: 320px;
-        margin-top: 15px;
-        border-radius: 10px;
-        background: black;
-    }
-
-    input, button {
-        padding: 12px;
-        font-size: 20px;
-        width: 90%;
-        margin-top: 10px;
-        border-radius: 10px;
-    }
-
-    #result-box {
-        background: white;
-        padding: 15px;
-        border-radius: 10px;
-        margin-top: 15px;
-        font-size: 20px;
-    }
-
-    #reset-area {
-        margin-top: 40px;
-    }
+  :root{--bg:#071228;--card:#0f172a;--accent:#06b6d4;--muted:#94a3b8;--white:#eef2ff}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--white);padding:12px}
+  h1{font-size:20px;margin:0 0 8px 0}
+  .card{background:#0f172a;padding:12px;border-radius:10px;margin-top:12px}
+  .btn-row{display:flex;gap:8px;justify-content:space-between;margin-bottom:10px}
+  .big-btn{flex:1;padding:14px;border-radius:10px;border:0;font-weight:700;font-size:18px;cursor:pointer}
+  .P{background:#16a34a;color:#061a10}
+  .M{background:#2563eb;color:#eaf2ff}
+  .G{background:#dc2626;color:#fff}
+  input, select, button {width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:16px}
+  #reader {width:100%;border-radius:8px;margin-top:8px;background:#000;min-height:220px}
+  .small{color:var(--muted);font-size:13px;margin-top:6px}
+  .item{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
+  .label{font-weight:700;font-size:20px}
+  .muted{color:var(--muted);font-size:13px}
+  .row{display:flex;gap:8px}
+  .actions button{padding:8px;border-radius:8px;border:0;background:#1f2937;color:#fff}
+  #lista{max-height:260px;overflow:auto;margin-top:8px}
+  .danger{background:#7f1d1d;color:#fff;padding:8px;border-radius:8px}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111;padding:10px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);display:none;z-index:9999}
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
 </style>
 </head>
 <body>
+  <h1>📦 Facilita Agência</h1>
 
-<h2>📦 Facilita Agência - Etiquetas</h2>
+  <div class="card">
+    <div class="small">Escolha o tamanho antes de bipa</div>
+    <div class="btn-row" style="margin-top:8px">
+      <button id="btnP" class="big-btn P" title="Pequeno">P<br><span class="muted">Pequeno</span></button>
+      <button id="btnM" class="big-btn M" title="Médio">M<br><span class="muted">Médio</span></button>
+      <button id="btnG" class="big-btn G" title="Grande">G<br><span class="muted">Grande</span></button>
+    </div>
+    <div id="selected" class="small">Tamanho selecionado: <strong id="selText">M</strong></div>
 
-<div class="size-buttons">
-    <button id="btnP">P</button>
-    <button id="btnM">M</button>
-    <button id="btnG">G</button>
-</div>
+    <div style="margin-top:10px" class="controls">
+      <button id="btnStart" class="big-btn" style="flex:1;background:#0ea5a1;color:#021">Abrir Câmera (BIPAR)</button>
+      <button id="btnStop" class="big-btn" style="flex:1;display:none;background:#374151">Parar câmera</button>
+    </div>
 
-<h3>📸 Câmera (bipe o QR Code)</h3>
-<video id="video" autoplay></video>
-<canvas id="canvas" style="display:none;"></canvas>
+    <div id="reader"></div>
+    <div class="small">Se a câmera não abrir, verifique permissões do site no navegador.</div>
 
-<div id="result-box">Aguardando leitura...</div>
+    <div style="margin-top:10px">
+      <div class="small">Código detectado / campo manual</div>
+      <input id="codigo" placeholder="Código do cliente (12 dígitos)" inputmode="numeric" maxlength="24"/>
+      <div class="row">
+        <button id="btnGen" class="big-btn" style="flex:1">Gerar etiqueta</button>
+        <button id="btnImport" class="big-btn" style="flex:0.6;background:#111827">Importar JSON</button>
+      </div>
+      <div id="out" class="small"></div>
+    </div>
+  </div>
 
-<h3>🔎 Procurar pacote</h3>
-<input type="text" id="searchBox" placeholder="Digite parte do código do cliente...">
-<button onclick="buscarPacote()">Buscar</button>
+  <div class="card">
+    <h3 style="margin:0">🔎 Buscar por parte do código</h3>
+    <div class="small">Digite os 5 primeiros, 5 últimos ou qualquer trecho</div>
+    <input id="busca" placeholder="Parte do código (ex: 03399 ou 8136)"/>
+    <div class="row" style="margin-top:8px">
+      <button id="btnBusca">Buscar</button>
+      <button id="btnClearSearch" class="big-btn" style="flex:0.6;background:#374151">Limpar</button>
+    </div>
+    <div id="resultados"></div>
+  </div>
 
-<div id="searchResult"></div>
+  <div class="card">
+    <h3 style="margin:0">📋 Registros</h3>
+    <div class="small">Últimos registros (toque em entregar para liberar número)</div>
+    <div id="lista"></div>
+    <div style="margin-top:8px" class="row">
+      <button id="btnExport">Exportar CSV</button>
+      <button id="btnBackup">Backup (baixar JSON)</button>
+      <button id="btnResetUI" class="danger">Resetar (protegido)</button>
+    </div>
+    <div class="small" style="margin-top:8px">Backup automático a cada 2 minutos; desfazer reset disponível por 10 minutos.</div>
+  </div>
 
-<div id="reset-area">
-    <h3>⚠️ Reset Seguro</h3>
-    <button onclick="abrirReset()">REDEFINIR SISTEMA</button>
-</div>
+  <input type="file" id="importFile" accept="application/json" style="display:none"/>
 
-<div id="undoBox" style="display:none; color:green; font-size:20px; margin-top:20px;">
-    ✔ Sistema resetado.  
-    <br>Você pode desfazer em até 10 minutos:  
-    <br><button onclick="desfazerReset()">Desfazer Reset</button>
-</div>
+  <div id="toast" class="toast"></div>
 
+<!-- html5-qrcode -->
+<script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 <script>
-let tamanhoSelecionado = null;
-let contador = JSON.parse(localStorage.getItem("contadores")) || {P:1, M:1, G:1};
-let etiquetas = JSON.parse(localStorage.getItem("etiquetas")) || {};
-let backupReset = null;
-let resetTimer = null;
+/* Config */
+const RESET_PASSWORD = "4608";
+const UNDO_WINDOW_MS = 10 * 60 * 1000;
+const AUTO_BACKUP_INTERVAL = 2 * 60 * 1000;
+const STORAGE_KEY = 'FACILITA_FINAL_DB_V2';
 
-/* BOTÕES TAMANHO */
-document.getElementById("btnP").onclick = () => selecionar('P');
-document.getElementById("btnM").onclick = () => selecionar('M');
-document.getElementById("btnG").onclick = () => selecionar('G');
+/* DB init */
+let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+if(!DB) DB = { registros: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, lastUndo:null, undoData:null };
 
-function selecionar(t) {
-    tamanhoSelecionado = t;
-    document.getElementById("result-box").innerHTML = "Tamanho selecionado: <b>" + t + "</b><br>Bipe o pacote.";
+/* UI refs */
+const btnP = document.getElementById('btnP');
+const btnM = document.getElementById('btnM');
+const btnG = document.getElementById('btnG');
+const selText = document.getElementById('selText');
+const btnStart = document.getElementById('btnStart');
+const btnStop = document.getElementById('btnStop');
+const readerDiv = document.getElementById('reader');
+const codigoInput = document.getElementById('codigo');
+const btnGen = document.getElementById('btnGen');
+const btnBusca = document.getElementById('btnBusca');
+const buscaInput = document.getElementById('busca');
+const resultados = document.getElementById('resultados');
+const lista = document.getElementById('lista');
+const toast = document.getElementById('toast');
+const btnExport = document.getElementById('btnExport');
+const btnBackup = document.getElementById('btnBackup');
+const btnResetUI = document.getElementById('btnResetUI');
+const importFile = document.getElementById('importFile');
+const btnImport = document.getElementById('btnImport');
+const btnClearSearch = document.getElementById('btnClearSearch');
+
+let selected = 'M';
+let html5QrcodeScanner = null;
+let scanning = false;
+let lastScanTime = 0;
+let lastDetected = null;
+
+/* util */
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
+function pad(n){ return String(n).padStart(4,'0'); }
+function makeLabel(t,n){ return t + pad(n); }
+function showToast(msg, ms=1400){ toast.textContent = msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none', ms); }
+function vibrate(ms=40){ if(navigator.vibrate) navigator.vibrate(ms); }
+
+/* numbering */
+function nextNum(t){
+  if(DB.livres[t].length){ DB.livres[t].sort((a,b)=>a-b); return DB.livres[t].shift(); }
+  DB.contadores[t] = (DB.contadores[t]||0) + 1;
+  return DB.contadores[t];
 }
 
-/* CÂMERA */
-let video = document.getElementById("video");
-navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }})
-    .then(stream => video.srcObject = stream);
-
-let canvas = document.getElementById("canvas");
-let ctx = canvas.getContext("2d");
-
-setInterval(() => {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0);
-    tryDecode();
-}, 600);
-
-function tryDecode() {
-    try {
-        let img = canvas.toDataURL("image/png");
-        qrcode.decode(img);
-    } catch {}
+/* allocate */
+function allocate(code, t, auto=true){
+  if(!code) return null;
+  const exist = DB.registros.find(r => r.codigo === code && !r.entregue);
+  if(exist) return exist;
+  const n = nextNum(t);
+  const et = makeLabel(t,n);
+  const rec = {codigo: code, etiqueta: et, tamanho: t, num: n, entregue:false, ts: Date.now()};
+  DB.registros.push(rec);
+  save();
+  refreshList();
+  if(auto){ showToast('Gerado ' + et); vibrate(30); }
+  return rec;
 }
 
-qrcode.callback = function(code) {
-    if (!code) return;
+/* entregar */
+function entregar(et){
+  const rec = DB.registros.find(r => r.etiqueta === et);
+  if(!rec) return alert('Não encontrado');
+  if(rec.entregue) return alert('Já entregue');
+  rec.entregue = true;
+  DB.livres[rec.tamanho].push(rec.num);
+  save(); refreshList(); showToast('Entregue ' + et);
+}
+window.entregar = entregar;
 
-    if (!tamanhoSelecionado) {
-        document.getElementById("result-box").innerHTML = "⚠️ Primeiro selecione P, M ou G!";
-        return;
+/* UI handlers */
+btnP.addEventListener('click', ()=>{ selected='P'; selText.textContent='P'; btnP.style.outline='3px solid rgba(255,255,255,0.06)';});
+btnM.addEventListener('click', ()=>{ selected='M'; selText.textContent='M'; btnM.style.outline='3px solid rgba(255,255,255,0.06)';});
+btnG.addEventListener('click', ()=>{ selected='G'; selText.textContent='G'; btnG.style.outline='3px solid rgba(255,255,255,0.06)';});
+
+btnGen.addEventListener('click', ()=> {
+  const code = codigoInput.value.trim();
+  if(!code){ alert('Digite ou escaneie o código'); return; }
+  const r = allocate(code, selected, false);
+  if(r) { showToast('Gerado: ' + r.etiqueta); codigoInput.value=''; }
+});
+
+/* refresh list */
+function refreshList(){
+  lista.innerHTML = '';
+  DB.registros.slice().reverse().forEach(r=>{
+    const div = document.createElement('div'); div.className='item';
+    div.innerHTML = `<div><div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho} • ${r.entregue? 'Entregue':'Pendente'}</div></div>
+      <div class="actions"><button onclick="entregar('${r.etiqueta}')">Entregar</button></div>`;
+    lista.appendChild(div);
+  });
+}
+
+/* search */
+btnBusca.addEventListener('click', ()=>{
+  const q = buscaInput.value.trim();
+  resultados.innerHTML = '';
+  if(!q) return resultados.innerHTML = '<div class="small">Digite algo.</div>';
+  const matches = DB.registros.filter(r => r.codigo.includes(q));
+  if(matches.length===0) return resultados.innerHTML = '<div class="small">Nenhum encontrado.</div>';
+  matches.forEach(r=>{
+    const d = document.createElement('div'); d.className='item';
+    d.innerHTML = `<div><b>${r.etiqueta}</b><div class="small">${r.codigo} • ${r.entregue? 'Entregue':'Pendente'}</div></div>
+      <div><button onclick="entregar('${r.etiqueta}')">Entregar</button></div>`;
+    resultados.appendChild(d);
+  });
+});
+btnClearSearch.addEventListener('click', ()=>{ buscaInput.value=''; resultados.innerHTML=''; });
+
+/* export CSV */
+btnExport.addEventListener('click', ()=>{
+  const rows = [['clientCode','etiqueta','tamanho','num','entregue','ts']];
+  DB.registros.forEach(r=>rows.push([r.codigo,r.etiqueta,r.tamanho,r.num,r.entregue,r.ts]));
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'}); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download='facilita-agencia.csv'; a.click(); URL.revokeObjectURL(url);
+});
+
+/* backup download */
+btnBackup.addEventListener('click', ()=>{
+  const data = JSON.stringify(DB);
+  const blob = new Blob([data],{type:'application/json'}); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download='facilita-agencia-backup.json'; a.click(); URL.revokeObjectURL(url);
+});
+
+/* import */
+btnImport.addEventListener('click', ()=> importFile.click());
+importFile.addEventListener('change', (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = function(){ try{ const j = JSON.parse(reader.result); if(j.registros) { if(confirm('Importar e substituir dados atuais?')){ DB=j; save(); refreshList(); alert('Importado'); } } else alert('Arquivo inválido'); }catch(err){ alert('Erro ao importar'); } };
+  reader.readAsText(f);
+});
+
+/* reset protected */
+btnResetUI.addEventListener('click', ()=>{
+  const pass = prompt('Senha para reset:');
+  if(pass !== RESET_PASSWORD){ alert('Senha inválida'); return; }
+  const confirmText = prompt('Digite a frase de confirmação: QUERO RESETAR TUDO');
+  if(confirmText !== 'QUERO RESETAR TUDO'){ alert('Confirmação incorreta'); return; }
+  // save undo
+  DB.lastUndo = Date.now();
+  DB.undoData = JSON.stringify(DB);
+  localStorage.setItem(STORAGE_KEY + '_PRE_RESET', DB.undoData);
+  // clear
+  DB = { registros: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, lastUndo: DB.lastUndo, undoData: DB.undoData };
+  save(); refreshList();
+  showToast('Reset feito. Você tem 10 minutos para desfazer.');
+  checkUndoExpiry();
+});
+
+/* undo */
+function checkUndoExpiry(){
+  if(!DB.lastUndo) return;
+  const elapsed = Date.now() - DB.lastUndo;
+  if(elapsed > UNDO_WINDOW_MS){
+    DB.lastUndo = null; DB.undoData = null; localStorage.removeItem(STORAGE_KEY + '_PRE_RESET'); save();
+    showToast('Período de desfazer expirou');
+  } else {
+    if(!document.getElementById('undoBtn')){
+      const b = document.createElement('button'); b.id='undoBtn'; b.textContent='Desfazer Reset (10 min)'; b.style.marginTop='8px'; b.style.background='#f97316'; b.style.color='#012';
+      b.onclick = function(){
+        const saved = localStorage.getItem(STORAGE_KEY + '_PRE_RESET');
+        if(!saved) return alert('Nenhum backup encontrado');
+        try{ DB = JSON.parse(saved); DB.lastUndo = null; DB.undoData = null; localStorage.removeItem(STORAGE_KEY + '_PRE_RESET'); save(); refreshList(); alert('Dados restaurados'); b.remove(); }catch(e){ alert('Falha ao restaurar'); }
+      };
+      document.querySelector('.card').appendChild(b);
     }
-
-    gerarEtiqueta(code);
-};
-
-function gerarEtiqueta(codigoCliente) {
-    let novo = tamanhoSelecionado + String(contador[tamanhoSelecionado]).padStart(4,'0');
-
-    etiquetas[codigoCliente] = novo;
-    contador[tamanhoSelecionado]++;
-
-    salvar();
-
-    document.getElementById("result-box").innerHTML = `
-        ✔ Pacote registrado!<br>
-        Cliente: <b>${codigoCliente}</b><br>
-        Etiqueta: <b>${novo}</b>
-    `;
+    setTimeout(checkUndoExpiry,5000);
+  }
 }
 
-/* SALVAR */
-function salvar() {
-    localStorage.setItem("etiquetas", JSON.stringify(etiquetas));
-    localStorage.setItem("contadores", JSON.stringify(contador));
+/* autosave */
+setInterval(()=>{ try{ localStorage.setItem(STORAGE_KEY + '_AUTOSAVE', JSON.stringify(DB)); }catch(e){} }, AUTO_BACKUP_INTERVAL);
+
+/* scan handling */
+function handleDetected(text){
+  const now = Date.now();
+  if(!text) return;
+  // sanitize digits: if client codes are digits, keep digits. If mixed, keep raw
+  let raw = text.toString().trim();
+  // many barcode readers return extra chars - keep only digits if length >=8
+  const onlyDigits = raw.replace(/\D/g,'');
+  if(onlyDigits.length >= 6) raw = onlyDigits;
+  // debounce
+  if(lastDetected === raw && (now - lastScanTime) < 700) return;
+  lastDetected = raw; lastScanTime = now;
+  codigoInput.value = raw;
+  allocate(raw, selected, true);
 }
 
-/* BUSCA */
-function buscarPacote() {
-    let busca = document.getElementById("searchBox").value.trim();
-    if (busca.length < 3) {
-        document.getElementById("searchResult").innerHTML = "Digite ao menos 3 números.";
-        return;
-    }
-
-    let results = Object.keys(etiquetas).filter(k => k.includes(busca));
-    if (results.length == 0) {
-        document.getElementById("searchResult").innerHTML = "Nenhum pacote encontrado.";
-        return;
-    }
-
-    let html = "";
-    results.forEach(r => {
-        html += `Cliente: <b>${r}</b> → Etiqueta: <b>${etiquetas[r]}</b><br>`;
-    });
-
-    document.getElementById("searchResult").innerHTML = html;
+/* start/stop QR */
+async function startScanner(){
+  if(scanning) return;
+  // build config to support QR and common barcodes
+  const formats = [
+    Html5QrcodeSupportedFormats.QR_CODE,
+    Html5QrcodeSupportedFormats.CODE_128,
+    Html5QrcodeSupportedFormats.EAN_13,
+    Html5QrcodeSupportedFormats.CODE_39,
+    Html5QrcodeSupportedFormats.UPC_A
+  ];
+  const config = { fps: 10, qrbox: false, formatsToSupport: formats };
+  html5QrcodeScanner = new Html5Qrcode(/* element id */ "reader", /* verbose= */ false);
+  try{
+    await html5QrcodeScanner.start(
+      { facingMode: "environment" },
+      config,
+      (decodedText, decodedResult) => { handleDetected(decodedText); },
+      (error) => { /* ignore minor scan errors */ }
+    );
+    scanning = true;
+    btnStart.style.display='none';
+    btnStop.style.display='inline-block';
+    showToast('Câmera iniciada');
+  }catch(err){
+    alert('Erro ao iniciar câmera: ' + (err && err.message ? err.message : err));
+  }
 }
 
-/* RESET SEGURO */
-function abrirReset() {
-    let senha = prompt("Digite a senha de RESET:");
-
-    if (senha !== "4608") {
-        alert("Senha incorreta!");
-        return;
-    }
-
-    let frase = prompt('Para confirmar, digite: QUERO RESETAR TUDO');
-
-    if (frase !== "QUERO RESETAR TUDO") {
-        alert("Reset cancelado.");
-        return;
-    }
-
-    backupReset = { etiquetas: {...etiquetas}, contador: {...contador} };
-
-    etiquetas = {};
-    contador = {P:1, M:1, G:1};
-    salvar();
-
-    document.getElementById("undoBox").style.display = "block";
-
-    resetTimer = setTimeout(() => {
-        backupReset = null;
-        document.getElementById("undoBox").style.display = "none";
-    }, 10 * 60 * 1000);
+function stopScanner(){
+  if(!scanning || !html5QrcodeScanner) return;
+  html5QrcodeScanner.stop().then(()=>{ html5QrcodeScanner.clear(); scanning=false; btnStart.style.display='inline-block'; btnStop.style.display='none'; showToast('Câmera parada'); }).catch(e=>{ console.warn(e); });
 }
 
-function desfazerReset() {
-    if (!backupReset) {
-        alert("Tempo expirado.");
-        return;
-    }
+btnStart.addEventListener('click', startScanner);
+btnStop.addEventListener('click', stopScanner);
 
-    etiquetas = backupReset.etiquetas;
-    contador = backupReset.contador;
-    salvar();
+/* init */
+refreshList();
+checkUndoExpiry();
 
-    backupReset = null;
-    clearTimeout(resetTimer);
+/* load from storage (on open) */
+(function(){
+  try{ const pre = localStorage.getItem(STORAGE_KEY + '_AUTOSAVE'); if(pre){ /* optional restore prompt */ } }catch(e){}
+})();
 
-    document.getElementById("undoBox").style.display = "none";
-    alert("Reset desfeito com sucesso!");
-}
 </script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
-<script src="https://rawcdn.githack.com/mebjas/html5-qrcode/master/minified/html5-qrcode.min.js"></script>
-
 </body>
 </html>
