@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Facilita Agência — ON DEMAND</title>
+<title>Facilita Agência — Pacotes On Demand</title>
 <meta name="theme-color" content="#06b6d4">
 <style>
 :root{--bg:#071228;--card:#0f172a;--accent:#06b6d4;--muted:#94a3b8;--white:#eef2ff}
@@ -16,180 +16,155 @@ h1{font-size:20px;margin:0 0 8px 0}
 .M{background:#2563eb;color:#eaf2ff}
 .G{background:#dc2626;color:#fff}
 input, select, button {width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:16px}
-#reader {width:100%;border-radius:8px;margin-top:8px;background:#000;min-height:220px;display:flex;align-items:center;justify-content:center}
-.small{color:var(--muted);font-size:13px;margin-top:6px}
+#pendingList, #deliveredList{max-height:260px;overflow:auto;margin-top:8px}
 .item{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
 .label{font-weight:700;font-size:20px}
-.muted{color:var(--muted);font-size:13px}
-.row{display:flex;gap:8px}
-.actions button{padding:8px;border-radius:8px;border:0;background:#1f2937;color:#fff}
-#lista{max-height:260px;overflow:auto;margin-top:8px}
-.danger{background:#7f1d1d;color:#fff;padding:8px;border-radius:8px}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111;padding:10px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);display:none;z-index:9999}
-.status{margin-top:8px;font-size:14px;color:#cbd5e1}
-.error{color:#ffb4b4;background:#3b0f0f;padding:8px;border-radius:8px;margin-top:8px}
-.etiqueta-flutuante{
+.small{color:var(--muted);font-size:13px;margin-top:6px}
+.actions button{padding:6px;border-radius:6px;border:0;background:#1f2937;color:#fff;font-size:14px}
+/* etiqueta flutuante */
+.floatingLabel{
   position:fixed;
-  top:20px;
-  right:20px;
-  background:var(--accent);
+  top:20px; left:50%;
+  transform:translateX(-50%);
+  background:#2563eb;
   color:#fff;
-  padding:12px 18px;
-  border-radius:10px;
+  font-size:24px;
   font-weight:700;
-  font-size:18px;
+  padding:12px 20px;
+  border-radius:10px;
   box-shadow:0 4px 14px rgba(0,0,0,0.4);
   z-index:9999;
-  opacity:0.95;
+  display:none;
+  animation:fadeInOut 2s forwards;
+}
+@keyframes fadeInOut{
+  0%{opacity:0; transform:translate(-50%, -20px);}
+  10%{opacity:1; transform:translate(-50%,0);}
+  90%{opacity:1; transform:translate(-50%,0);}
+  100%{opacity:0; transform:translate(-50%,-20px);}
 }
 </style>
 </head>
 <body>
-<h1>📦 Facilita Agência — ON DEMAND</h1>
+
+<h1>📦 Facilita Agência — On Demand</h1>
 
 <div class="card">
-  <div class="small">Código do cliente (bipe ou digite)</div>
-  <input id="codigo" placeholder="Código do cliente" inputmode="numeric" maxlength="24" autofocus/>
-  <div class="small">Selecione o tamanho após bipar:</div>
-  <div class="btn-row" style="margin-top:8px">
-    <button id="btnP" class="big-btn P" title="Pequeno">P</button>
-    <button id="btnM" class="big-btn M" title="Médio">M</button>
-    <button id="btnG" class="big-btn G" title="Grande">G</button>
+  <div class="small">Bipe o código do cliente</div>
+  <input id="codigo" placeholder="Bipe ou digite o código do cliente" inputmode="numeric" maxlength="24"/>
+  
+  <div class="small" style="margin-top:12px">Escolha o tamanho do pacote</div>
+  <div class="btn-row">
+    <button id="btnP" class="big-btn P">P</button>
+    <button id="btnM" class="big-btn M">M</button>
+    <button id="btnG" class="big-btn G">G</button>
   </div>
-  <div id="selected" class="small">Tamanho selecionado: <strong id="selText">---</strong></div>
-  <button id="btnGen" class="big-btn" style="margin-top:12px;background:#0ea5a1;color:#021">Gerar etiqueta</button>
 </div>
 
 <div class="card">
-  <h3 style="margin:0">📋 Pacotes pendentes</h3>
-  <div id="lista"></div>
+  <h3>📋 Pacotes Pendentes</h3>
+  <div id="pendingList"></div>
 </div>
 
 <div class="card">
-  <h3 style="margin:0">📋 Pacotes entregues</h3>
-  <div id="listaEntregues"></div>
+  <h3>📋 Pacotes Entregues</h3>
+  <div id="deliveredList"></div>
 </div>
 
-<div id="toast" class="toast"></div>
+<div id="floatingLabel" class="floatingLabel"></div>
 
 <script>
-const STORAGE_KEY = 'FACILITA_ONDEMAND_DB_V3';
-
+/* CONFIG */
+const STORAGE_KEY='FACILITA_DB_V3';
 let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-if(!DB) DB = { registros: [], contadores:{P:0,M:0,G:0}, entregues:[] };
+if(!DB) DB={registros:[],contadores:{P:0,M:0,G:0},livres:{P:[],M:[],G:[]},entregues:[],codesUsed:{}};
 
-const codigoInput = document.getElementById('codigo');
-const btnGen = document.getElementById('btnGen');
-const btnP = document.getElementById('btnP');
-const btnM = document.getElementById('btnM');
-const btnG = document.getElementById('btnG');
-const selText = document.getElementById('selText');
-const lista = document.getElementById('lista');
-const listaEntregues = document.getElementById('listaEntregues');
-const toast = document.getElementById('toast');
+/* UI refs */
+const codigoInput=document.getElementById('codigo');
+const btnP=document.getElementById('btnP');
+const btnM=document.getElementById('btnM');
+const btnG=document.getElementById('btnG');
+const pendingList=document.getElementById('pendingList');
+const deliveredList=document.getElementById('deliveredList');
+const floatingLabel=document.getElementById('floatingLabel');
 
-let selected = null;
+let selectedSize=null;
 
-function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
-function showToast(msg,ms=1200){ toast.textContent=msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none',ms); }
-function makeLabel(t,n){ return t + n; }
-function nextNum(t){ DB.contadores[t] = (DB.contadores[t]||0)+1; return DB.contadores[t]; }
+/* UTIL */
+function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(DB));}
+function showFloatingLabel(msg){floatingLabel.textContent=msg; floatingLabel.style.display='block'; setTimeout(()=>{floatingLabel.style.display='none';},2000);}
+function nextNum(t){if(DB.livres[t].length){return DB.livres[t].shift();} DB.contadores[t]=(DB.contadores[t]||0)+1; return DB.contadores[t];}
+function makeLabel(t,n){return t+n;}
 
-function showEtiquetaFlutuante(et){
-  const div = document.createElement('div');
-  div.className='etiqueta-flutuante';
-  div.textContent = et;
-  document.body.appendChild(div);
-  setTimeout(()=>div.remove(),2000);
-}
+/* Size buttons */
+btnP.addEventListener('click',()=>{selectedSize='P'; showFloatingLabel('Tamanho P selecionado');});
+btnM.addEventListener('click',()=>{selectedSize='M'; showFloatingLabel('Tamanho M selecionado');});
+btnG.addEventListener('click',()=>{selectedSize='G'; showFloatingLabel('Tamanho G selecionado');});
 
-// Geração de pacote
-function allocate(code,t){
-  if(!code || !t) return null;
-  const existente = DB.registros.find(r=>r.codigo===code);
-  if(existente){
-    showToast('Código já cadastrado. Para retirada, bipar novamente.');
-    showEtiquetaFlutuante(existente.etiqueta);
-    return existente;
+/* Alocar pacote */
+function allocate(code){
+  if(!code) return;
+  if(DB.codesUsed[code]){ // já existe
+    const rec=DB.registros.find(r=>r.codigo===code);
+    if(rec){showFloatingLabel(`Código já cadastrado: ${rec.etiqueta}`); return;}
   }
-  const n = nextNum(t);
-  const et = makeLabel(t,n);
-  const rec = {codigo: code, etiqueta: et, tamanho: t, num: n};
+  if(!selectedSize){showFloatingLabel('Escolha o tamanho antes'); return;}
+  const num=nextNum(selectedSize);
+  const label=makeLabel(selectedSize,num);
+  const rec={codigo:code,etiqueta:label,tamanho:selectedSize,num:num,ts:Date.now()};
   DB.registros.push(rec);
+  DB.codesUsed[code]=true;
   save();
-  refreshList();
-  showEtiquetaFlutuante(et);
-  return rec;
+  refreshLists();
+  showFloatingLabel(`Gerado: ${label}`);
+  codigoInput.value='';
 }
 
-// Entrega do pacote
-function entregar(codigo){
-  const idx = DB.registros.findIndex(r=>r.codigo===codigo);
-  if(idx===-1) return;
-  const rec = DB.registros.splice(idx,1)[0];
+/* Entregar pacote */
+function deliver(code){
+  const recIndex=DB.registros.findIndex(r=>r.codigo===code);
+  if(recIndex===-1){showFloatingLabel('Código não encontrado'); return;}
+  const rec=DB.registros.splice(recIndex,1)[0];
   DB.entregues.push(rec);
   save();
-  refreshList();
+  refreshLists();
+  showFloatingLabel(`Pacote entregue: ${rec.etiqueta}`);
 }
 
-// Atualiza listas
-function refreshList(){
-  lista.innerHTML = '';
-  DB.registros.slice().reverse().forEach(r=>{
-    const div = document.createElement('div'); div.className='item';
-    div.innerHTML = `<div><div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho}</div></div>
-      <div class="actions"><button onclick="entregar('${r.codigo}')">Entregar</button></div>`;
-    lista.appendChild(div);
+/* Refresh lists */
+function refreshLists(){
+  pendingList.innerHTML='';
+  DB.registros.forEach(r=>{
+    const div=document.createElement('div');
+    div.className='item';
+    div.innerHTML=`<div><div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho}</div></div>
+      <div class="actions"><button onclick="deliver('${r.codigo}')">Entregar</button></div>`;
+    pendingList.appendChild(div);
   });
-
-  listaEntregues.innerHTML = '';
-  DB.entregues.slice().reverse().forEach(r=>{
-    const div = document.createElement('div'); div.className='item';
-    div.innerHTML = `<div><div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho}</div></div>`;
-    listaEntregues.appendChild(div);
+  deliveredList.innerHTML='';
+  DB.entregues.forEach(r=>{
+    const div=document.createElement('div');
+    div.className='item';
+    div.innerHTML=`<div><div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho}</div></div>`;
+    deliveredList.appendChild(div);
   });
 }
 
-// Botões de tamanho
-btnP.addEventListener('click',()=>{ selected='P'; selText.textContent='P'; });
-btnM.addEventListener('click',()=>{ selected='M'; selText.textContent='M'; });
-btnG.addEventListener('click',()=>{ selected='G'; selText.textContent='G'; });
-
-// Gera etiqueta
-btnGen.addEventListener('click',()=>{
-  const code = codigoInput.value.trim();
-  if(!code){ showToast('Digite ou bipe o código'); return; }
-  if(!selected){ showToast('Selecione o tamanho'); return; }
-  allocate(code,selected);
-  codigoInput.value=''; selected=null; selText.textContent='---';
-});
-
-// Permite receber o código via teclado Scan/leitor externo
-codigoInput.addEventListener('keypress', function(e){
-  if(e.key==='Enter'){
-    const code = codigoInput.value.trim();
-    if(!code) return;
-    // Verifica se o código já existe → exibe etiqueta do pacote (retirada)
-    const existente = DB.registros.find(r=>r.codigo===code);
-    if(existente){
-      showToast('Pacote para retirada encontrado!');
-      showEtiquetaFlutuante(existente.etiqueta);
-      codigoInput.value='';
-      selected=null;
-      selText.textContent='---';
-      return;
-    }
-    // Se não existe e tamanho foi selecionado → cria pacote
-    if(selected){
-      allocate(code,selected);
-      codigoInput.value=''; selected=null; selText.textContent='---';
-      return;
-    }
-    showToast('Selecione o tamanho antes de gerar um novo pacote');
+/* Input listener (leitor externo ou digitação) */
+codigoInput.addEventListener('change',(e)=>{
+  const code=e.target.value.trim();
+  if(!code) return;
+  const exists=DB.registros.find(r=>r.codigo===code);
+  if(exists){ // cliente chegou retirar
+    deliver(code);
+  }else{
+    allocate(code);
   }
 });
 
-refreshList();
+/* init */
+refreshLists();
 </script>
+
 </body>
 </html>
