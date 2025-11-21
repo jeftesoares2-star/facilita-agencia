@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Facilita Agência - Scanner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        padding: 15px;
+        background: #f1f1f1;
+        text-align: center;
+    }
+
+    h2 { font-size: 22px; }
+
+    .size-buttons button {
+        font-size: 22px;
+        padding: 15px 30px;
+        margin: 8px;
+        border-radius: 10px;
+        border: none;
+        color: white;
+        font-weight: bold;
+    }
+    #btnP { background: #3b83f6; }
+    #btnM { background: #f6a23b; }
+    #btnG { background: #e63b3b; }
+
+    #video {
+        width: 100%;
+        max-width: 320px;
+        margin-top: 15px;
+        border-radius: 10px;
+        background: black;
+    }
+
+    input, button {
+        padding: 12px;
+        font-size: 20px;
+        width: 90%;
+        margin-top: 10px;
+        border-radius: 10px;
+    }
+
+    #result-box {
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        margin-top: 15px;
+        font-size: 20px;
+    }
+
+    #reset-area {
+        margin-top: 40px;
+    }
+</style>
+</head>
+<body>
+
+<h2>📦 Facilita Agência - Etiquetas</h2>
+
+<div class="size-buttons">
+    <button id="btnP">P</button>
+    <button id="btnM">M</button>
+    <button id="btnG">G</button>
+</div>
+
+<h3>📸 Câmera (bipe o QR Code)</h3>
+<video id="video" autoplay></video>
+<canvas id="canvas" style="display:none;"></canvas>
+
+<div id="result-box">Aguardando leitura...</div>
+
+<h3>🔎 Procurar pacote</h3>
+<input type="text" id="searchBox" placeholder="Digite parte do código do cliente...">
+<button onclick="buscarPacote()">Buscar</button>
+
+<div id="searchResult"></div>
+
+<div id="reset-area">
+    <h3>⚠️ Reset Seguro</h3>
+    <button onclick="abrirReset()">REDEFINIR SISTEMA</button>
+</div>
+
+<div id="undoBox" style="display:none; color:green; font-size:20px; margin-top:20px;">
+    ✔ Sistema resetado.  
+    <br>Você pode desfazer em até 10 minutos:  
+    <br><button onclick="desfazerReset()">Desfazer Reset</button>
+</div>
+
+<script>
+let tamanhoSelecionado = null;
+let contador = JSON.parse(localStorage.getItem("contadores")) || {P:1, M:1, G:1};
+let etiquetas = JSON.parse(localStorage.getItem("etiquetas")) || {};
+let backupReset = null;
+let resetTimer = null;
+
+/* BOTÕES TAMANHO */
+document.getElementById("btnP").onclick = () => selecionar('P');
+document.getElementById("btnM").onclick = () => selecionar('M');
+document.getElementById("btnG").onclick = () => selecionar('G');
+
+function selecionar(t) {
+    tamanhoSelecionado = t;
+    document.getElementById("result-box").innerHTML = "Tamanho selecionado: <b>" + t + "</b><br>Bipe o pacote.";
+}
+
+/* CÂMERA */
+let video = document.getElementById("video");
+navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }})
+    .then(stream => video.srcObject = stream);
+
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d");
+
+setInterval(() => {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    tryDecode();
+}, 600);
+
+function tryDecode() {
+    try {
+        let img = canvas.toDataURL("image/png");
+        qrcode.decode(img);
+    } catch {}
+}
+
+qrcode.callback = function(code) {
+    if (!code) return;
+
+    if (!tamanhoSelecionado) {
+        document.getElementById("result-box").innerHTML = "⚠️ Primeiro selecione P, M ou G!";
+        return;
+    }
+
+    gerarEtiqueta(code);
+};
+
+function gerarEtiqueta(codigoCliente) {
+    let novo = tamanhoSelecionado + String(contador[tamanhoSelecionado]).padStart(4,'0');
+
+    etiquetas[codigoCliente] = novo;
+    contador[tamanhoSelecionado]++;
+
+    salvar();
+
+    document.getElementById("result-box").innerHTML = `
+        ✔ Pacote registrado!<br>
+        Cliente: <b>${codigoCliente}</b><br>
+        Etiqueta: <b>${novo}</b>
+    `;
+}
+
+/* SALVAR */
+function salvar() {
+    localStorage.setItem("etiquetas", JSON.stringify(etiquetas));
+    localStorage.setItem("contadores", JSON.stringify(contador));
+}
+
+/* BUSCA */
+function buscarPacote() {
+    let busca = document.getElementById("searchBox").value.trim();
+    if (busca.length < 3) {
+        document.getElementById("searchResult").innerHTML = "Digite ao menos 3 números.";
+        return;
+    }
+
+    let results = Object.keys(etiquetas).filter(k => k.includes(busca));
+    if (results.length == 0) {
+        document.getElementById("searchResult").innerHTML = "Nenhum pacote encontrado.";
+        return;
+    }
+
+    let html = "";
+    results.forEach(r => {
+        html += `Cliente: <b>${r}</b> → Etiqueta: <b>${etiquetas[r]}</b><br>`;
+    });
+
+    document.getElementById("searchResult").innerHTML = html;
+}
+
+/* RESET SEGURO */
+function abrirReset() {
+    let senha = prompt("Digite a senha de RESET:");
+
+    if (senha !== "4608") {
+        alert("Senha incorreta!");
+        return;
+    }
+
+    let frase = prompt('Para confirmar, digite: QUERO RESETAR TUDO');
+
+    if (frase !== "QUERO RESETAR TUDO") {
+        alert("Reset cancelado.");
+        return;
+    }
+
+    backupReset = { etiquetas: {...etiquetas}, contador: {...contador} };
+
+    etiquetas = {};
+    contador = {P:1, M:1, G:1};
+    salvar();
+
+    document.getElementById("undoBox").style.display = "block";
+
+    resetTimer = setTimeout(() => {
+        backupReset = null;
+        document.getElementById("undoBox").style.display = "none";
+    }, 10 * 60 * 1000);
+}
+
+function desfazerReset() {
+    if (!backupReset) {
+        alert("Tempo expirado.");
+        return;
+    }
+
+    etiquetas = backupReset.etiquetas;
+    contador = backupReset.contador;
+    salvar();
+
+    backupReset = null;
+    clearTimeout(resetTimer);
+
+    document.getElementById("undoBox").style.display = "none";
+    alert("Reset desfeito com sucesso!");
+}
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
+<script src="https://rawcdn.githack.com/mebjas/html5-qrcode/master/minified/html5-qrcode.min.js"></script>
+
+</body>
+</html>
