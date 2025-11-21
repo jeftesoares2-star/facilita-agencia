@@ -11,7 +11,8 @@
   h1{font-size:20px;margin:0 0 8px 0}
   .card{background:#0f172a;padding:12px;border-radius:10px;margin-top:12px}
   .btn-row{display:flex;gap:8px;justify-content:space-between;margin-bottom:10px}
-  .big-btn{flex:1;padding:12px;border-radius:10px;border:0;font-weight:700;font-size:17px;cursor:pointer}
+  .big-btn{flex:1;padding:12px;border-radius:10px;border:0;font-weight:700;font-size:17px;cursor:pointer;transition:0.2s}
+  .big-btn:hover{opacity:0.85}
   .P{background:#16a34a;color:#061a10}
   .M{background:#2563eb;color:#eaf2ff}
   .G{background:#dc2626;color:#fff}
@@ -21,7 +22,7 @@
   .label{font-weight:700;font-size:20px}
   .muted{color:var(--muted);font-size:13px}
   .row{display:flex;gap:8px}
-  .actions button{padding:8px;border-radius:8px;border:0;background:#1f2937;color:#fff}
+  .actions button{padding:8px;border-radius:8px;border:0;background:#1f2937;color:#fff;cursor:pointer}
   #lista{max-height:260px;overflow:auto;margin-top:8px}
   .danger{background:#7f1d1d;color:#fff;padding:8px;border-radius:8px}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111;padding:10px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);display:none;z-index:9999}
@@ -55,15 +56,12 @@
   <div id="toast" class="toast"></div>
 
 <script>
-/* CONFIG */
 const RESET_PASSWORD = "4608";
-const STORAGE_KEY = 'FACILITA_ONDEMAND_DB_V2';
+const STORAGE_KEY = 'FACILITA_ONDEMAND_DB_V4';
 
-/* DB init */
 let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
 if(!DB) DB = { registros: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, lastUndo:null, undoData:null };
 
-/* UI refs */
 const codigoInput = document.getElementById('codigo');
 const sizeSelection = document.getElementById('sizeSelection');
 const btnP = document.getElementById('btnP');
@@ -78,21 +76,18 @@ const importFile = document.getElementById('importFile');
 
 let lastDetected = null;
 
-/* utils */
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
 function pad(n){ return String(n).padStart(4,'0'); }
 function makeLabel(t,n){ return t + pad(n); }
 function showToast(msg, ms=1200){ toast.textContent = msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none', ms); }
 function vibrate(ms=40){ if(navigator.vibrate) navigator.vibrate(ms); }
 
-/* numbering */
 function nextNum(t){
   if(DB.livres[t].length){ DB.livres[t].sort((a,b)=>a-b); return DB.livres[t].shift(); }
   DB.contadores[t] = (DB.contadores[t]||0) + 1;
   return DB.contadores[t];
 }
 
-/* allocate */
 function allocate(code, t){
   if(!code) return null;
   const exist = DB.registros.find(r => r.codigo === code && !r.entregue);
@@ -107,7 +102,6 @@ function allocate(code, t){
   return rec;
 }
 
-/* refresh list */
 function refreshList(){
   lista.innerHTML = '';
   DB.registros.slice().reverse().forEach(r=>{
@@ -118,7 +112,6 @@ function refreshList(){
   });
 }
 
-/* entregar */
 function entregar(et){
   const rec = DB.registros.find(r => r.etiqueta === et);
   if(!rec) return alert('Não encontrado');
@@ -129,7 +122,6 @@ function entregar(et){
 }
 window.entregar = entregar;
 
-/* handle bipado */
 codigoInput.addEventListener('input', ()=>{
   const code = codigoInput.value.trim();
   if(!code || code === lastDetected) return;
@@ -137,7 +129,6 @@ codigoInput.addEventListener('input', ()=>{
   sizeSelection.style.display='flex';
 });
 
-/* size selection */
 [btnP, btnM, btnG].forEach(btn=>{
   btn.addEventListener('click', ()=>{
     const code = codigoInput.value.trim();
@@ -150,7 +141,6 @@ codigoInput.addEventListener('input', ()=>{
   });
 });
 
-/* export CSV */
 btnExport.addEventListener('click', ()=>{
   const rows = [['clientCode','etiqueta','tamanho','num','entregue','ts']];
   DB.registros.forEach(r=>rows.push([r.codigo,r.etiqueta,r.tamanho,r.num,r.entregue,r.ts]));
@@ -159,14 +149,12 @@ btnExport.addEventListener('click', ()=>{
   const a = document.createElement('a'); a.href = url; a.download='facilita-agencia.csv'; a.click(); URL.revokeObjectURL(url);
 });
 
-/* backup download */
 btnBackup.addEventListener('click', ()=>{
   const data = JSON.stringify(DB);
   const blob = new Blob([data],{type:'application/json'}); const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download='facilita-agencia-backup.json'; a.click(); URL.revokeObjectURL(url);
 });
 
-/* reset protected */
 btnResetUI.addEventListener('click', ()=>{
   const pass = prompt('Senha para reset:');
   if(pass !== RESET_PASSWORD){ alert('Senha inválida'); return; }
@@ -180,7 +168,6 @@ btnResetUI.addEventListener('click', ()=>{
   showToast('Reset feito.');
 });
 
-/* init */
 refreshList();
 </script>
 </body>
