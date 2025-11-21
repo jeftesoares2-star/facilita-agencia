@@ -1,18 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Facilita Agência — ON DEMAND</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
-    h1 { color: #333; }
-    button { padding: 10px 15px; margin: 5px; cursor: pointer; }
-    #camera { width: 100%; max-width: 400px; margin-top: 10px; border: 1px solid #ccc; }
-    #status { margin-top: 10px; font-weight: bold; }
-    #codigo { margin-top: 10px; width: 100%; padding: 5px; }
-    .section { margin-top: 20px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Facilita Agência — ON DEMAND</title>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -27,6 +20,16 @@
   <button id="abrirCameraBtn">Abrir Câmera (BIPAR)</button>
   <p id="status">Câmera inativa — toque "Abrir Câmera (BIPAR)"</p>
   <video id="camera" autoplay playsinline></video>
+</div>
+
+<div class="section">
+  <p>Ramos disponíveis (clique para selecionar)</p>
+  <div class="ramos">
+    <div class="ramo" data-id="1">R1</div>
+    <div class="ramo" data-id="2">R2</div>
+    <div class="ramo" data-id="3">R3</div>
+    <div class="ramo" data-id="4">R4</div>
+  </div>
 </div>
 
 <div class="section">
@@ -47,49 +50,6 @@
   <p>Backup automático a cada 2 minutos; desfazer reset disponível por 10 minutos.</p>
 </div>
 
-<script>
-const status = document.getElementById('status');
-
-// Função que inicia a câmera quando o <video> estiver pronto
-function initCameraWhenReady() {
-  status.textContent = 'Tentando iniciar câmera...';
-
-  const observer = new MutationObserver(async (mutations, obs) => {
-    const video = document.getElementById('camera');
-    if (video) {
-      obs.disconnect(); // para de observar
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
-        await video.play();
-        status.textContent = 'Câmera ativa';
-        console.log('Câmera iniciada com sucesso!');
-      } catch (err) {
-        console.error('Erro ao iniciar câmera:', err);
-        status.textContent = 'Erro ao iniciar câmera';
-        alert('Não foi possível acessar a câmera. Verifique permissões.');
-      }
-    }
-  });
-
-  observer.observe(document.body, { childList: true, subtree: true });
-}
-
-// Botão para abrir câmera
-document.getElementById('abrirCameraBtn').addEventListener('click', initCameraWhenReady);
-
-// Botões extras (implementação básica de exemplo)
-document.getElementById('gerarEtiquetaBtn').addEventListener('click', () => {
-  const codigo = document.getElementById('codigo').value;
-  if (!codigo) return alert('Digite ou escaneie um código antes de gerar a etiqueta.');
-  alert(`Etiqueta gerada para o código: ${codigo}`);
-});
-
-document.getElementById('importarJSONBtn').addEventListener('click', () => alert('Importar JSON ainda não implementado.'));
-document.getElementById('desfazerResetBtn').addEventListener('click', () => alert('Desfazer Reset ainda não implementado.'));
-document.getElementById('exportarCSVBtn').addEventListener('click', () => alert('Exportar CSV ainda não implementado.'));
-document.getElementById('backupJSONBtn').addEventListener('click', () => alert('Backup JSON ainda não implementado.'));
-</script>
-
+<script src="js/app.js"></script>
 </body>
 </html>
