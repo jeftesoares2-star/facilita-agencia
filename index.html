@@ -3,165 +3,165 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Facilita Agência — Bipar & Etiqueta</title>
+<title>Facilita Agência — ON DEMAND</title>
 <meta name="theme-color" content="#06b6d4">
 <style>
   :root{--bg:#071228;--card:#0f172a;--accent:#06b6d4;--muted:#94a3b8;--white:#eef2ff}
   body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--white);padding:12px}
-  h1{font-size:20px;margin:0 0 8px 0;text-align:center;}
+  h1{font-size:20px;margin:0 0 8px 0}
   .card{background:#0f172a;padding:12px;border-radius:10px;margin-top:12px}
-  input{width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:16px}
+  .btn-row{display:flex;gap:8px;justify-content:space-between;margin-bottom:10px}
+  .big-btn{flex:1;padding:12px;border-radius:10px;border:0;font-weight:700;font-size:17px;cursor:pointer}
+  .P{background:#16a34a;color:#061a10}
+  .M{background:#2563eb;color:#eaf2ff}
+  .G{background:#dc2626;color:#fff}
+  input, select, button {width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);margin-top:8px;font-size:16px}
+  #lista{max-height:260px;overflow:auto;margin-top:8px}
   .small{color:var(--muted);font-size:13px;margin-top:6px}
   .item{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
   .label{font-weight:700;font-size:20px}
+  .muted{color:var(--muted);font-size:13px}
+  .row{display:flex;gap:8px}
   .actions button{padding:8px;border-radius:8px;border:0;background:#1f2937;color:#fff}
-  #lista,#entregues{max-height:260px;overflow:auto;margin-top:8px}
+  .danger{background:#7f1d1d;color:#fff;padding:8px;border-radius:8px}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111;padding:10px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);display:none;z-index:9999}
-  .size-popup{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);background:#1e293b;padding:20px;border-radius:12px;display:none;flex-direction:column;gap:12px;z-index:9999;box-shadow:0 0 12px rgba(0,0,0,0.6);}
-  .size-popup button{width:100%;font-size:18px;padding:12px;border-radius:8px;border:0;cursor:pointer;}
-  .size-popup .P{background:#16a34a;color:#061a10;}
-  .size-popup .M{background:#2563eb;color:#eaf2ff;}
-  .size-popup .G{background:#dc2626;color:#fff;}
 </style>
 </head>
 <body>
-<h1>📦 Facilita Agência — Bipar & Etiqueta</h1>
+  <h1>📦 Facilita Agência — ON DEMAND</h1>
 
-<div class="card">
-  <div class="small">Bipe o código do cliente no leitor externo (Teclado Scan, etc.)</div>
-  <input id="codigoInput" placeholder="Código do cliente" autofocus autocomplete="off"/>
-</div>
+  <div class="card">
+    <div class="small">Código do cliente</div>
+    <input id="codigo" placeholder="Digite ou bipar código do cliente" inputmode="numeric" maxlength="24"/>
+    <div class="row" style="margin-top:8px">
+      <button id="btnGen" class="big-btn" style="flex:1">Gerar etiqueta</button>
+    </div>
+  </div>
 
-<div class="card">
-  <h3>📋 Pacotes Pendentes</h3>
-  <div id="lista"></div>
-</div>
+  <div class="card">
+    <h3 style="margin:0">📋 Registros</h3>
+    <div id="lista"></div>
+    <div class="row" style="margin-top:8px">
+      <button id="btnResetUI" class="danger">Resetar Tudo</button>
+    </div>
+  </div>
 
-<div class="card">
-  <h3>✅ Pacotes Entregues</h3>
-  <div id="entregues"></div>
-</div>
-
-<div id="toast" class="toast"></div>
-
-<div id="sizePopup" class="size-popup">
-  <div class="small">Escolha o tamanho do pacote</div>
-  <button class="P">P</button>
-  <button class="M">M</button>
-  <button class="G">G</button>
-</div>
+  <div id="toast" class="toast"></div>
 
 <script>
-const STORAGE_KEY='FACILITA_ONDEMAND_DB_OVERLAY';
-let DB=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
-if(!DB) DB={registros:[],contadores:{P:0,M:0,G:0},entregues:[]};
+/* CONFIG */
+const RESET_PASSWORD = "4608"; // altere para sua senha
+const UNDO_WINDOW_MS = 10*60*1000; // 10 minutos
 
-const codigoInput=document.getElementById('codigoInput');
-const lista=document.getElementById('lista');
-const entregues=document.getElementById('entregues');
-const toast=document.getElementById('toast');
-const sizePopup=document.getElementById('sizePopup');
+/* DB init */
+let DB = JSON.parse(localStorage.getItem('FACILITA_ONDEMAND_DB_V1') || 'null');
+if(!DB) DB = { registros: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, lastUndo:null, undoData:null };
 
-function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(DB));}
-function showToast(msg,ms=1200){toast.textContent=msg;toast.style.display='block';setTimeout(()=>toast.style.display='none',ms);}
-function nextNum(t){DB.contadores[t]=(DB.contadores[t]||0)+1;return DB.contadores[t];}
-function makeLabel(t,n){return t+n;}
-function overlayLabel(etiqueta){
-  const ov=document.createElement('div');
-  ov.textContent=etiqueta;
-  ov.style.position='fixed';
-  ov.style.top='20%';
-  ov.style.left='50%';
-  ov.style.transform='translate(-50%,-50%)';
-  ov.style.background='#111';
-  ov.style.color='#fff';
-  ov.style.padding='12px 18px';
-  ov.style.borderRadius='12px';
-  ov.style.zIndex='99999';
-  ov.style.fontSize='22px';
-  ov.style.fontWeight='700';
-  document.body.appendChild(ov);
-  setTimeout(()=>document.body.removeChild(ov),2000);
+/* UI refs */
+const codigoInput = document.getElementById('codigo');
+const btnGen = document.getElementById('btnGen');
+const lista = document.getElementById('lista');
+const toast = document.getElementById('toast');
+const btnResetUI = document.getElementById('btnResetUI');
+
+/* utils */
+function save(){ localStorage.setItem('FACILITA_ONDEMAND_DB_V1', JSON.stringify(DB)); }
+function showToast(msg, ms=1200){ toast.textContent = msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none', ms); }
+function vibrate(ms=40){ if(navigator.vibrate) navigator.vibrate(ms); }
+function pad(n){ return String(n); }
+
+/* numbering */
+function nextNum(t){
+  if(DB.livres[t].length){ DB.livres[t].sort((a,b)=>a-b); return DB.livres[t].shift(); }
+  DB.contadores[t] = (DB.contadores[t]||0) + 1;
+  return DB.contadores[t];
 }
 
-function allocate(code,t){
-  if(!code) return;
-  const exist=DB.registros.find(r=>r.codigo===code);
+/* allocate */
+function allocate(code, t){
+  if(!code) return null;
+  const exist = DB.registros.find(r=>r.codigo===code && !r.entregue);
   if(exist) return exist;
-  const n=nextNum(t);
-  const et=makeLabel(t,n);
-  const rec={codigo:code,etiqueta:et,tamanho:t,ts:Date.now()};
+  const n = nextNum(t);
+  const et = t + n; // etiqueta: M1, P2...
+  const rec = {codigo: code, etiqueta: et, tamanho: t, num:n, entregue:false, ts:Date.now()};
   DB.registros.push(rec);
-  save();
-  refreshLists();
-  overlayLabel(et);
+  save(); refreshList();
+  showToast('Gerado ' + et); vibrate(30);
   return rec;
 }
 
-function markDelivered(code){
-  const rec=DB.registros.find(r=>r.codigo===code);
-  if(!rec) return showToast('Código não encontrado');
-  DB.registros=DB.registros.filter(r=>r.codigo!==code);
-  DB.entregues.push(rec);
-  save();
-  refreshLists();
-  overlayLabel('Entregue: '+rec.etiqueta);
-}
-
-function refreshLists(){
-  lista.innerHTML='';
-  DB.registros.forEach(r=>{
-    const div=document.createElement('div');div.className='item';
-    div.innerHTML=`<div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho}</div>
-      <div class="actions"><button onclick="markDelivered('${r.codigo}')">Entregar</button></div>`;
+/* refresh list */
+function refreshList(){
+  lista.innerHTML = '';
+  DB.registros.slice().reverse().forEach(r=>{
+    const div = document.createElement('div'); div.className='item';
+    div.innerHTML = `<div><div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho} • ${r.entregue?'Entregue':'Pendente'}</div></div>
+      <div class="actions"><button onclick="entregar('${r.etiqueta}')">Entregar</button></div>`;
     lista.appendChild(div);
   });
-  entregues.innerHTML='';
-  DB.entregues.forEach(r=>{
-    const div=document.createElement('div');div.className='item';
-    div.innerHTML=`<div class="label">${r.etiqueta}</div><div class="small">${r.codigo} • ${r.tamanho}</div>`;
-    entregues.appendChild(div);
-  });
 }
 
-function promptSize(code){
-  sizePopup.style.display='flex';
-  const buttons=sizePopup.querySelectorAll('button');
-  buttons.forEach(btn=>{
-    btn.onclick=()=>{
-      allocate(code,btn.textContent);
-      sizePopup.style.display='none';
-      codigoInput.value='';
-      codigoInput.focus();
-    };
-  });
+/* entregar */
+function entregar(et){
+  const rec = DB.registros.find(r=>r.etiqueta===et);
+  if(!rec) return alert('Não encontrado');
+  if(rec.entregue) return alert('Já entregue');
+  rec.entregue = true;
+  DB.livres[rec.tamanho].push(rec.num);
+  save(); refreshList(); showToast('Entregue ' + et);
 }
+window.entregar = entregar;
 
-// captura do leitor externo (simula teclado)
-codigoInput.addEventListener('keydown',e=>{
-  if(e.key==='Enter'){
-    const code=codigoInput.value.trim();
-    if(!code) return;
-    // verifica se já foi entregue
-    const recDelivered=DB.entregues.find(r=>r.codigo===code);
-    if(recDelivered){
-      overlayLabel('Pacote já retirado: '+recDelivered.etiqueta);
-      codigoInput.value='';
-      return;
-    }
-    // verifica se já existe (retirada)
-    const recPending=DB.registros.find(r=>r.codigo===code);
-    if(recPending){
-      overlayLabel('Pacote pendente: '+recPending.etiqueta);
-      codigoInput.value='';
-      return;
-    }
-    // se não existe, pede tamanho e gera etiqueta
-    promptSize(code);
-  }
+/* gerar etiqueta */
+btnGen.addEventListener('click', ()=>{
+  const code = codigoInput.value.trim();
+  if(!code){ alert('Digite ou escaneie o código'); return; }
+  const t = prompt('Digite o tamanho do pacote (P, M ou G)').toUpperCase();
+  if(!['P','M','G'].includes(t)){ alert('Tamanho inválido'); return; }
+  allocate(code,t);
+  codigoInput.value='';
 });
 
-refreshLists();
+/* reset protegido */
+btnResetUI.addEventListener('click', ()=>{
+  const pass = prompt('Senha para reset:');
+  if(pass !== RESET_PASSWORD){ alert('Senha inválida'); return; }
+  const confirmText = prompt('Digite a frase de confirmação: QUERO RESETAR TUDO');
+  if(confirmText !== 'RESETAR'){ alert('Confirmação incorreta'); return; }
+  DB.lastUndo = Date.now();
+  DB.undoData = JSON.stringify(DB);
+  localStorage.setItem('FACILITA_ONDEMAND_DB_V1_PRE_RESET', DB.undoData);
+  DB = { registros: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, lastUndo: DB.lastUndo, undoData: DB.undoData };
+  save(); refreshList();
+  showToast('Reset feito. Você tem 10 minutos para desfazer.');
+  checkUndoExpiry();
+});
+
+/* undo */
+function checkUndoExpiry(){
+  if(!DB.lastUndo) return;
+  const elapsed = Date.now() - DB.lastUndo;
+  if(elapsed > UNDO_WINDOW_MS){
+    DB.lastUndo = null; DB.undoData = null; localStorage.removeItem('FACILITA_ONDEMAND_DB_V1_PRE_RESET'); save();
+    showToast('Período de desfazer expirou');
+  } else {
+    if(!document.getElementById('undoBtn')){
+      const b = document.createElement('button'); b.id='undoBtn'; b.textContent='Desfazer Reset (10 min)'; b.style.marginTop='8px'; b.style.background='#f97316'; b.style.color='#012';
+      b.onclick = function(){
+        const saved = localStorage.getItem('FACILITA_ONDEMAND_DB_V1_PRE_RESET');
+        if(!saved) return alert('Nenhum backup encontrado');
+        try{ DB = JSON.parse(saved); DB.lastUndo = null; DB.undoData = null; localStorage.removeItem('FACILITA_ONDEMAND_DB_V1_PRE_RESET'); save(); refreshList(); alert('Dados restaurados'); b.remove(); }catch(e){ alert('Falha ao restaurar'); }
+      };
+      document.querySelector('.card').appendChild(b);
+    }
+    setTimeout(checkUndoExpiry,5000);
+  }
+}
+
+/* init */
+refreshList();
+checkUndoExpiry();
 </script>
 </body>
 </html>
