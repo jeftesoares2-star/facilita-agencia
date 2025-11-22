@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Facilita Agência — Recebimento em Lote (Leitor Externo)</title>
+<title>Facilita Agência — Recebimento em Lote (V4)</title>
 <meta name="theme-color" content="#06b6d4">
 <style>
   :root{
@@ -30,30 +30,26 @@
   .small{color:var(--muted);font-size:13px}
   footer{margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .danger{background:#7f1d1d;color:#fff;padding:10px;border-radius:8px;border:0;cursor:pointer}
-  /* popup / modal */
+  .ok-btn{background:var(--accent);color:#021;border:0;padding:10px 14px;border-radius:8px;font-weight:800;cursor:pointer}
+  .deliver-btn{background:#10b981;color:#021;border:0;padding:10px 14px;border-radius:8px;font-weight:800;cursor:pointer}
+  .cancel-btn{background:#374151;color:#fff;border:0;padding:10px 14px;border-radius:8px}
   .popup-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:9999}
-  .popup{background:#0b1220;padding:20px;border-radius:12px;min-width:300px;max-width:92%;text-align:center;color:var(--white);box-shadow:0 10px 40px rgba(0,0,0,0.6)}
-  .popup h2{margin:0 0 12px 0;font-size:24px}
-  .ok-btn{background:var(--accent);color:#021;border:0;padding:12px 18px;border-radius:8px;font-weight:800;cursor:pointer}
-  .deliver-btn{background:#10b981;color:#021;border:0;padding:12px 18px;border-radius:8px;font-weight:800;cursor:pointer}
-  .cancel-btn{background:#374151;color:#fff;border:0;padding:12px 18px;border-radius:8px}
+  .popup{background:#0b1220;padding:20px;border-radius:12px;min-width:260px;max-width:92%;text-align:center;color:var(--white);box-shadow:0 10px 40px rgba(0,0,0,0.6)}
   .muted{color:var(--muted)}
   .hidden{display:none!important}
   .floating-fixed{position:fixed;right:18px;bottom:18px;z-index:9998}
-  .small-box{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px}
-  @media (max-width:520px){
-    .popup h2{font-size:20px}
-  }
+  .small-box{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;margin-top:8px}
+  @media (max-width:520px){ .popup h2{font-size:20px} }
 </style>
 </head>
 <body>
 <header>
-  <h1>📦 Facilita Agência — Recebimento em Lote</h1>
-  <div class="small muted">Leitor externo: pronto</div>
+  <h1>📦 Facilita Agência — Recebimento em Lote (V4)</h1>
+  <div class="small muted">Preparado para leitor externo (modo teclado)</div>
 </header>
 
-<div class="card">
-  <div class="small">1) Selecione o tamanho do lote e depois bipar com leitor externo (ou digitar + ENTER para testar).</div>
+<div class="card" id="mainCard">
+  <div class="small">1) Selecione o tamanho do lote e depois bipar com leitor externo (ou digitar para teste).</div>
 
   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
     <button id="selectSizeBtn" class="btn lot-select">Selecionar tamanho</button>
@@ -63,18 +59,16 @@
     <button id="saveDefaultBtn" class="btn secondary" title="Salvar manualmente o package do app leitor">💾 Salvar leitor padrão</button>
   </div>
 
-  <div style="margin-top:10px" class="small-box">
+  <div class="small-box">
     <div class="small muted">Leitor padrão salvo: <span id="savedReaderLabel" class="muted">nenhum</span></div>
-    <div class="small muted" style="margin-top:6px">Dica: ao tocar em <strong>📷 Abrir Leitor Externo</strong> o Android mostrará apps compatíveis; escolha <em>Sempre</em> para definir como padrão no sistema.</div>
+    <div class="small muted" style="margin-top:6px">Dica: use um leitor que emula teclado. Se estiver usando um app leitor, escolha 'Sempre' no chooser para torná-lo padrão.</div>
   </div>
 
-  <div style="margin-top:12px" class="small">2) Foque no campo abaixo (ou use leitor externo que emula teclado). Cada bipe + ENTER → registra.</div>
+  <div style="margin-top:12px" class="small">2) Foque no campo abaixo (o leitor envia o código). O app detecta leitura automaticamente (sem ENTER) e fecha a janela em 1.5s.</div>
 
-  <!-- campo visível para teste + campo oculto para leitor real -->
-  <input id="scannerInputVisible" class="scanner" placeholder="Campo de teste: digite ou bipar aqui e pressione ENTER" autocomplete="off" />
+  <input id="scannerInputVisible" class="scanner" placeholder="Campo de teste: digite ou bipar aqui" autocomplete="off" />
   <input id="scannerInputHidden" class="scanner hidden" aria-hidden="true" />
 
-  <div style="margin-top:8px" class="small muted">Depois de selecionar o tamanho, os próximos bipe(s) usarão esse tamanho. Clique em "Finalizar Lote" para encerrar.</div>
 </div>
 
 <div class="card">
@@ -126,20 +120,20 @@
   </div>
 </div>
 
-<!-- floating quick help -->
 <div class="floating-fixed">
   <button id="helpBtn" class="btn secondary">Ajuda</button>
 </div>
 
 <script>
-/* ===== CONFIG ===== */
-const STORAGE_KEY = 'FACILITA_LOTE_V_LEITOREXTERNO';
+/* CONFIG */
+const STORAGE_KEY = 'FACILITA_V4_LEITOREXTERNO';
 const RESET_PASSWORD = '4608';
 const UNDO_WINDOW_MS = 10 * 60 * 1000;
 const AUTO_BACKUP_INTERVAL = 2 * 60 * 1000;
 const READER_PREF_KEY = 'FACILITA_READER_PREF';
+const AUTO_CLOSE_MS = 1500; // 1.5s)
 
-/* ===== DB init ===== */
+/* DB init */
 let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
 if(!DB) DB = {
   registros: [],
@@ -151,7 +145,7 @@ if(!DB) DB = {
   undoData: null
 };
 
-/* ===== UI refs ===== */
+/* UI refs */
 const selectSizeBtn = document.getElementById('selectSizeBtn');
 const finalizeLotBtn = document.getElementById('finalizeLotBtn');
 const openReaderBtn = document.getElementById('openReaderBtn');
@@ -177,18 +171,18 @@ const btnReset = document.getElementById('btnReset');
 const searchPending = document.getElementById('searchPending');
 const helpBtn = document.getElementById('helpBtn');
 
-/* ===== State ===== */
-let currentLotSize = null; // 'P' | 'M' | 'G' or null
+/* State */
+let currentLotSize = null;
 let lastDetected = null;
 let lastAllocTime = 0;
 
-/* ===== Reader preference handling ===== */
+/* Reader pref */
 function getSavedReader(){ return localStorage.getItem(READER_PREF_KEY) || null; }
 function setSavedReader(pkg){ if(pkg) localStorage.setItem(READER_PREF_KEY, pkg); else localStorage.removeItem(READER_PREF_KEY); updateSavedReaderLabel(); }
 function updateSavedReaderLabel(){ const pkg = getSavedReader(); savedReaderLabel.textContent = pkg ? pkg : 'nenhum'; }
 updateSavedReaderLabel();
 
-/* ===== Utilities ===== */
+/* Utilities */
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
 function showPopup(title, text, buttons){
   popupTitle.textContent = title || '';
@@ -236,7 +230,6 @@ function allocatePackage(clientCode, size){
   save();
   return rec;
 }
-
 function markDeliveredByCode(clientCode){
   const idx = DB.registros.findIndex(r => r.codigo === clientCode);
   if(idx === -1) return null;
@@ -251,7 +244,7 @@ function markDeliveredByCode(clientCode){
   return rec;
 }
 
-/* ===== Rendering ===== */
+/* Rendering */
 function renderPending(filter=''){
   pendingList.innerHTML = '';
   const list = DB.registros.slice().reverse().filter(r=>{
@@ -291,11 +284,13 @@ function renderDelivered(){
   });
 }
 
-/* ===== Popups ===== */
+/* Popups */
 function showGeneratedPopup(rec){
   showPopup('Etiqueta gerada', `Etiqueta: ${rec.etiqueta}\nCliente: ${rec.codigo}`, [
     { label: 'OK', class: 'ok-btn', onClick: ()=>{ vibrate(20); } }
   ]);
+  // auto-close
+  setTimeout(()=>{ hidePopup(); }, AUTO_CLOSE_MS);
 }
 function showPendingPopup(rec){
   showPopup('Pacote pendente', `Etiqueta: ${rec.etiqueta}\nCliente: ${rec.codigo}`, [
@@ -303,23 +298,11 @@ function showPendingPopup(rec){
     { label: 'Cancelar', class: 'cancel-btn' }
   ]);
 }
-window.showDetails = function(clientCode){
-  const rec = DB.registros.find(r=>r.codigo===clientCode);
-  if(!rec) return alert('Registro não encontrado');
-  showPopup('Detalhes', `Etiqueta: ${rec.etiqueta}\nCliente: ${rec.codigo}\nTamanho: ${rec.tamanho}\nRecebido: ${new Date(rec.ts).toLocaleString()}`, [
-    { label:'Fechar', class:'ok-btn' }
-  ]);
-}
-window.deliverConfirm = function(clientCode){
-  const rec = DB.registros.find(r=>r.codigo===clientCode);
-  if(!rec) return alert('Registro não encontrado');
-  showPopup('Confirmar entrega', `Entregar etiqueta ${rec.etiqueta}?`, [
-    { label:'Sim, entregar', class:'deliver-btn', onClick: ()=>{ const d=markDeliveredByCode(clientCode); if(d){ showPopup('Entregue', `Entregue: ${d.etiqueta}`, [{label:'OK', class:'ok-btn'}]); renderPending(searchPending.value.trim()); renderDelivered(); } } },
-    { label:'Cancelar', class:'cancel-btn' }
-  ]);
-}
 
-/* ===== Scanner processing (batch mode) ===== */
+/* scanner handling (auto-detect for readers without ENTER) */
+let scanBuffer = '';
+let scanTimer = null;
+const SCAN_DEBOUNCE = 300; // ms
 function processScannedCode(code){
   if(!code) return;
   const now = Date.now();
@@ -342,19 +325,27 @@ function processScannedCode(code){
   }
   const rec = allocatePackage(code, currentLotSize);
   if(rec && rec.error){ showPopup('Erro', rec.error, [{label:'OK', class:'ok-btn'}]); return; }
-  showGeneratedPopup(rec);
   renderPending(searchPending.value.trim());
   renderDelivered();
+  showGeneratedPopup(rec);
 }
 
-/* attach ENTERs */
-scannerInputVisible.addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter'){
-    const code = scannerInputVisible.value.trim();
+/* visible input listens for changes (for testing) */
+scannerInputVisible.addEventListener('input', (e)=>{
+  const v = e.target.value.trim();
+  if(scanTimer) clearTimeout(scanTimer);
+  scanBuffer = v;
+  if(v.length === 0) return;
+  // debounce to detect end of typing/scan
+  scanTimer = setTimeout(()=>{ 
+    const code = scanBuffer;
     scannerInputVisible.value = '';
     processScannedCode(code);
-  }
+    scanBuffer = '';
+  }, SCAN_DEBOUNCE);
 });
+
+/* hidden input for devices that send ENTER - keep as fallback */
 scannerInputHidden.addEventListener('keydown', (e)=>{
   if(e.key === 'Enter'){
     const code = scannerInputHidden.value.trim();
@@ -363,14 +354,13 @@ scannerInputHidden.addEventListener('keydown', (e)=>{
   }
 });
 
-/* focus scanner helper */
+/* focus helper */
 function focusScanner(){
-  // If hidden is visible (not hidden class) prefer it; else visible input.
   if(!scannerInputHidden.classList.contains('hidden')) scannerInputHidden.focus();
   else scannerInputVisible.focus();
 }
 
-/* size modal behaviour */
+/* size modal */
 selectSizeBtn.addEventListener('click', ()=>{ sizeModal.style.display = 'flex'; });
 closeSizeModal.addEventListener('click', ()=>{ sizeModal.style.display = 'none'; focusScanner(); });
 
@@ -406,55 +396,43 @@ finalizeLotBtn.addEventListener('click', ()=>{
   focusScanner();
 });
 
-/* ===== Open external reader behavior ===== */
+/* open reader behavior */
 function openReaderIntentWithPackage(pkg){
   try{
-    // Intent URI with package (will open that specific app if installed)
     window.location.href = "intent://scan/#Intent;package=" + encodeURIComponent(pkg) + ";end";
   }catch(e){
-    console.warn('openReaderIntentWithPackage error', e);
-    // fallback to generic
+    console.warn(e);
     window.location.href = "intent://scan/#Intent;scheme=zxing;end";
   }
 }
-
 openReaderBtn.addEventListener('click', ()=>{
   const saved = getSavedReader();
-  if(saved){
-    // try to open saved package; user can still choose system default if not installed
-    openReaderIntentWithPackage(saved);
-  } else {
-    // generic — this should open chooser with all compatible apps
-    try{
-      window.location.href = "intent://scan/#Intent;scheme=zxing;end";
-    }catch(e){
-      alert('Não foi possível abrir o leitor automaticamente. Abra manualmente o app leitor desejado.');
-    }
+  if(saved) openReaderIntentWithPackage(saved);
+  else {
+    try{ window.location.href = "intent://scan/#Intent;scheme=zxing;end"; }
+    catch(e){ alert('Não foi possível abrir o leitor automaticamente. Abra manualmente o app leitor desejado.'); }
   }
 });
-
-/* change reader — force chooser */
 changeReaderBtn.addEventListener('click', ()=>{
-  try{
-    // Generic intent — OS should show chooser even if default exists (sometimes it won't if default set to always)
-    // This tries generic chooser; if system has a default, user must clear default in Android settings to re-select.
-    window.location.href = "intent://scan/#Intent;scheme=zxing;end";
-  }catch(e){
-    alert('Erro ao tentar abrir o seletor de apps.');
-  }
+  try{ window.location.href = "intent://scan/#Intent;scheme=zxing;end"; }
+  catch(e){ alert('Erro ao tentar abrir o seletor de apps.'); }
 });
-
-/* Save default reader manually (user enters package name) */
 saveDefaultBtn.addEventListener('click', ()=>{
-  const info = "Se você souber o package name do app leitor (ex: com.example.reader), cole aqui. Caso não saiba, abra o app leitor pelo botão 'Abrir Leitor Externo' e escolha 'Sempre' no Android chooser para defini-lo como padrão no sistema.";
-  const pkg = prompt(info + "\\n\\nDigite o package name do app leitor (ou deixe vazio para remover):", getSavedReader()||'');
+  const info = "Se você souber o package name do app leitor (ex: com.example.reader), cole aqui.";
+  const pkg = prompt(info + "\n\nDigite o package name do app leitor (ou deixe vazio para remover):", getSavedReader()||'');
   if(pkg === null) return;
   if(pkg.trim()===''){ setSavedReader(null); alert('Leitor padrão removido.'); return; }
   setSavedReader(pkg.trim());
   alert('Leitor padrão salvo: ' + pkg.trim());
 });
 
-/* ===== Backup / export / reset / undo ===== */
+/* saved reader helpers */
+function getSavedReader(){ return localStorage.getItem(READER_PREF_KEY) || null; }
+function setSavedReader(pkg){ if(pkg) localStorage.setItem(READER_PREF_KEY, pkg); else localStorage.removeItem(READER_PREF_KEY); updateSavedReaderLabel(); }
+function updateSavedReaderLabel(){ const pkg = getSavedReader(); savedReaderLabel.textContent = pkg ? pkg : 'nenhum'; }
+updateSavedReaderLabel();
+
+/* Backup / export / reset / undo */
 function download(filename, text){
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([text], {type:'application/json'}));
@@ -468,7 +446,7 @@ exportCsv.addEventListener('click', ()=>{
   DB.entregues.concat(DB.registros).forEach(r=>{
     rows.push([r.codigo||'', r.etiqueta||'', r.tamanho||'', r.num||'', r.ts||'', r.tsEntregue||'']);
   });
-  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\\n');
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   download('facilita_export.csv', csv);
 });
 backupBtn.addEventListener('click', ()=> {
@@ -506,28 +484,25 @@ function startUndoTimer(){
   setTimeout(()=>{ try{ localStorage.removeItem(STORAGE_KEY + '_PRE_RESET'); if(document.getElementById(btnId)) document.getElementById(btnId).remove(); }catch(e){} }, UNDO_WINDOW_MS);
 }
 
-/* ===== Search ===== */
+/* Search */
 searchPending.addEventListener('input', ()=>{ renderPending(searchPending.value.trim()); });
 
-/* ===== Init UI ===== */
+/* Init */
 renderPending('');
 renderDelivered();
 scannerInputVisible.focus();
-updateSavedReaderLabel();
 
-/* ===== Keyboard shortcuts & safety ===== */
+/* Shortcuts */
 document.addEventListener('keydown', (e)=>{
   if(e.altKey && (e.key.toLowerCase()==='l')){ currentLotSize=null; selectSizeBtn.classList.remove('hidden'); finalizeLotBtn.classList.add('hidden'); scannerInputVisible.focus(); }
   if(e.key === 'Escape'){ hidePopup(); scannerInputVisible.focus(); sizeModal.style.display='none'; }
 });
 
-/* ===== Help button ===== */
+/* Help */
 helpBtn.addEventListener('click', ()=>{
-  const helpText = "Fluxo rápido:\n\n1) Toque em 'Selecionar tamanho' → escolha P/M/G.\n2) Foque no campo e bipar (seu leitor externo envia o código + ENTER) OU digite manualmente e pressione ENTER para testar.\n3) Ao finalizar o lote, toque em 'Finalizar Lote'.\n\nAbrir leitor: toque '📷 Abrir Leitor Externo' — o Android mostrará apps compatíveis; escolha 'Sempre' se quiser que o sistema defina um padrão. Para forçar a troca, use '⚙ Trocar leitor'.\n\nSe quiser fixar manualmente o leitor aqui, toque '💾 Salvar leitor padrão' e cole o package name do app (opcional).";
+  const helpText = "Fluxo rápido:\n\n1) Toque em 'Selecionar tamanho' → escolha P/M/G.\n2) Foque no campo e bipar (seu leitor externo envia o código) OU digite manualmente.\n3) Ao finalizar o lote, toque em 'Finalizar Lote'.\n\nO app fecha a janela de etiqueta automaticamente em 1.5s para operação rápida.";
   showPopup('Ajuda rápida', helpText, [{label:'OK', class:'ok-btn'}]);
 });
-
-/* ===== End ===== */
 </script>
 </body>
 </html>
