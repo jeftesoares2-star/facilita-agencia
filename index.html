@@ -30,16 +30,17 @@
   .small{color:var(--muted);font-size:13px}
   footer{margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .danger{background:#7f1d1d;color:#fff;padding:10px;border-radius:8px;border:0;cursor:pointer}
-  /* popup */
+  /* popup / modal */
   .popup-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:9999}
   .popup{background:#0b1220;padding:20px;border-radius:12px;min-width:300px;max-width:92%;text-align:center;color:var(--white);box-shadow:0 10px 40px rgba(0,0,0,0.6)}
   .popup h2{margin:0 0 12px 0;font-size:24px}
   .ok-btn{background:var(--accent);color:#021;border:0;padding:12px 18px;border-radius:8px;font-weight:800;cursor:pointer}
   .deliver-btn{background:#10b981;color:#021;border:0;padding:12px 18px;border-radius:8px;font-weight:800;cursor:pointer}
-  .cancel-btn{background:#374151;color:#fff;border:0;padding:12px 18px;border-radius:8px;cursor:pointer}
+  .cancel-btn{background:#374151;color:#fff;border:0;padding:12px 18px;border-radius:8px}
   .muted{color:var(--muted)}
   .hidden{display:none!important}
   .floating-fixed{position:fixed;right:18px;bottom:18px;z-index:9998}
+  .small-box{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px}
   @media (max-width:520px){
     .popup h2{font-size:20px}
   }
@@ -52,19 +53,24 @@
 </header>
 
 <div class="card">
-  <div class="small">1) Selecione o tamanho do lote e depois bipar com leitor externo</div>
+  <div class="small">1) Selecione o tamanho do lote e depois bipar com leitor externo (ou digitar + ENTER para testar).</div>
 
-  <!-- botão para abrir modal de seleção de tamanho -->
-  <div style="margin-top:8px">
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
     <button id="selectSizeBtn" class="btn lot-select">Selecionar tamanho</button>
     <button id="finalizeLotBtn" class="btn secondary hidden">Finalizar Lote</button>
     <button id="openReaderBtn" class="btn secondary" title="Abrir app leitor">📷 Abrir Leitor Externo</button>
-    <button id="changeReaderBtn" class="btn secondary" title="Trocar leitor">⚙ Trocar leitor</button>
+    <button id="changeReaderBtn" class="btn secondary" title="Trocar leitor (mostrar chooser)">⚙ Trocar leitor</button>
+    <button id="saveDefaultBtn" class="btn secondary" title="Salvar manualmente o package do app leitor">💾 Salvar leitor padrão</button>
+  </div>
+
+  <div style="margin-top:10px" class="small-box">
+    <div class="small muted">Leitor padrão salvo: <span id="savedReaderLabel" class="muted">nenhum</span></div>
+    <div class="small muted" style="margin-top:6px">Dica: ao tocar em <strong>📷 Abrir Leitor Externo</strong> o Android mostrará apps compatíveis; escolha <em>Sempre</em> para definir como padrão no sistema.</div>
   </div>
 
   <div style="margin-top:12px" class="small">2) Foque no campo abaixo (ou use leitor externo que emula teclado). Cada bipe + ENTER → registra.</div>
 
-  <!-- campo visível para teste + campo oculto para leitor real (ambos apontam para mesma lógica) -->
+  <!-- campo visível para teste + campo oculto para leitor real -->
   <input id="scannerInputVisible" class="scanner" placeholder="Campo de teste: digite ou bipar aqui e pressione ENTER" autocomplete="off" />
   <input id="scannerInputHidden" class="scanner hidden" aria-hidden="true" />
 
@@ -97,7 +103,7 @@
   <div class="small muted">Backup automático a cada 2 minutos; desfazer reset disponível por 10 minutos.</div>
 </footer>
 
-<!-- modal seleção de tamanho -->
+<!-- size modal -->
 <div id="sizeModal" class="popup-backdrop">
   <div class="popup" role="dialog" aria-modal="true">
     <h2>Escolha o tamanho do lote</h2>
@@ -120,7 +126,7 @@
   </div>
 </div>
 
-<!-- floating quick help button -->
+<!-- floating quick help -->
 <div class="floating-fixed">
   <button id="helpBtn" class="btn secondary">Ajuda</button>
 </div>
@@ -131,6 +137,7 @@ const STORAGE_KEY = 'FACILITA_LOTE_V_LEITOREXTERNO';
 const RESET_PASSWORD = '4608';
 const UNDO_WINDOW_MS = 10 * 60 * 1000;
 const AUTO_BACKUP_INTERVAL = 2 * 60 * 1000;
+const READER_PREF_KEY = 'FACILITA_READER_PREF';
 
 /* ===== DB init ===== */
 let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
@@ -149,6 +156,8 @@ const selectSizeBtn = document.getElementById('selectSizeBtn');
 const finalizeLotBtn = document.getElementById('finalizeLotBtn');
 const openReaderBtn = document.getElementById('openReaderBtn');
 const changeReaderBtn = document.getElementById('changeReaderBtn');
+const saveDefaultBtn = document.getElementById('saveDefaultBtn');
+const savedReaderLabel = document.getElementById('savedReaderLabel');
 const scannerInputVisible = document.getElementById('scannerInputVisible');
 const scannerInputHidden = document.getElementById('scannerInputHidden');
 const pendingList = document.getElementById('pendingList');
@@ -172,6 +181,12 @@ const helpBtn = document.getElementById('helpBtn');
 let currentLotSize = null; // 'P' | 'M' | 'G' or null
 let lastDetected = null;
 let lastAllocTime = 0;
+
+/* ===== Reader preference handling ===== */
+function getSavedReader(){ return localStorage.getItem(READER_PREF_KEY) || null; }
+function setSavedReader(pkg){ if(pkg) localStorage.setItem(READER_PREF_KEY, pkg); else localStorage.removeItem(READER_PREF_KEY); updateSavedReaderLabel(); }
+function updateSavedReaderLabel(){ const pkg = getSavedReader(); savedReaderLabel.textContent = pkg ? pkg : 'nenhum'; }
+updateSavedReaderLabel();
 
 /* ===== Utilities ===== */
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
@@ -304,29 +319,18 @@ window.deliverConfirm = function(clientCode){
   ]);
 }
 
-/* ===== Scanner handling (batch mode) =====
-Flow:
- - User clicks Select Size -> choose size -> modal closes and set currentLotSize
- - Once a lot selected, "Selecionar tamanho" button hides, "Finalizar Lote" shows
- - Focus on scanner input (hidden for real reader or visible for test)
- - ENTER processing:
-    - if code in pending -> show pending popup (allow deliver)
-    - else if code in delivered -> show already delivered
-    - else allocatePackage(code,currentLotSize) and show generated popup
-*/
+/* ===== Scanner processing (batch mode) ===== */
 function processScannedCode(code){
   if(!code) return;
   const now = Date.now();
   if(lastDetected === code && (now - lastAllocTime) < 600) return;
   lastDetected = code; lastAllocTime = now;
 
-  // check pending
   const pend = DB.registros.find(r=>r.codigo === code);
   if(pend){
     showPendingPopup(pend);
     return;
   }
-  // check delivered
   const del = DB.entregues.find(r=>r.codigo === code);
   if(del){
     showPopup('Já entregue', `Esse código já foi entregue antes.\nEtiqueta: ${del.etiqueta}`, [{label:'OK', class:'ok-btn'}]);
@@ -343,7 +347,7 @@ function processScannedCode(code){
   renderDelivered();
 }
 
-/* attach ENTER on visible input (for testing) */
+/* attach ENTERs */
 scannerInputVisible.addEventListener('keydown', (e)=>{
   if(e.key === 'Enter'){
     const code = scannerInputVisible.value.trim();
@@ -351,8 +355,6 @@ scannerInputVisible.addEventListener('keydown', (e)=>{
     processScannedCode(code);
   }
 });
-
-/* attach ENTER on hidden input (for real reader) */
 scannerInputHidden.addEventListener('keydown', (e)=>{
   if(e.key === 'Enter'){
     const code = scannerInputHidden.value.trim();
@@ -361,17 +363,14 @@ scannerInputHidden.addEventListener('keydown', (e)=>{
   }
 });
 
-/* expose focus function and helpers */
+/* focus scanner helper */
 function focusScanner(){
-  // prefer hidden (real reader) but keep visible as fallback
-  if(!scannerInputHidden.classList.contains('hidden')){
-    scannerInputHidden.focus();
-  } else {
-    scannerInputVisible.focus();
-  }
+  // If hidden is visible (not hidden class) prefer it; else visible input.
+  if(!scannerInputHidden.classList.contains('hidden')) scannerInputHidden.focus();
+  else scannerInputVisible.focus();
 }
 
-/* ===== size modal behavior ===== */
+/* size modal behaviour */
 selectSizeBtn.addEventListener('click', ()=>{ sizeModal.style.display = 'flex'; });
 closeSizeModal.addEventListener('click', ()=>{ sizeModal.style.display = 'none'; focusScanner(); });
 
@@ -399,8 +398,6 @@ chooseG.addEventListener('click', ()=>{
   showPopup('Lote iniciado', `Lote definido: G\nAgora bipar os pacotes deste lote.`, [{label:'OK', class:'ok-btn'}]);
   focusScanner();
 });
-
-/* finalize lot */
 finalizeLotBtn.addEventListener('click', ()=>{
   currentLotSize = null;
   selectSizeBtn.classList.remove('hidden');
@@ -409,25 +406,52 @@ finalizeLotBtn.addEventListener('click', ()=>{
   focusScanner();
 });
 
-/* ===== Open external reader (generic intent) ===== */
-openReaderBtn.addEventListener('click', ()=>{
-  // intent generic that prompts Android to show apps that handle scan intents (zxing style)
-  // Using the intent URI pattern — Android will show "Abrir com" com apps compatíveis.
+/* ===== Open external reader behavior ===== */
+function openReaderIntentWithPackage(pkg){
   try{
-    window.location.href = "intent://scan/#Intent;scheme=zxing;end";
+    // Intent URI with package (will open that specific app if installed)
+    window.location.href = "intent://scan/#Intent;package=" + encodeURIComponent(pkg) + ";end";
   }catch(e){
-    alert('Não foi possível abrir o leitor automaticamente. Abra manualmente o app leitor desejado.');
+    console.warn('openReaderIntentWithPackage error', e);
+    // fallback to generic
+    window.location.href = "intent://scan/#Intent;scheme=zxing;end";
+  }
+}
+
+openReaderBtn.addEventListener('click', ()=>{
+  const saved = getSavedReader();
+  if(saved){
+    // try to open saved package; user can still choose system default if not installed
+    openReaderIntentWithPackage(saved);
+  } else {
+    // generic — this should open chooser with all compatible apps
+    try{
+      window.location.href = "intent://scan/#Intent;scheme=zxing;end";
+    }catch(e){
+      alert('Não foi possível abrir o leitor automaticamente. Abra manualmente o app leitor desejado.');
+    }
   }
 });
 
-/* ===== Change reader (force chooser) ===== */
+/* change reader — force chooser */
 changeReaderBtn.addEventListener('click', ()=>{
   try{
-    // same intent — OS must show chooser if multiple apps can handle
+    // Generic intent — OS should show chooser even if default exists (sometimes it won't if default set to always)
+    // This tries generic chooser; if system has a default, user must clear default in Android settings to re-select.
     window.location.href = "intent://scan/#Intent;scheme=zxing;end";
   }catch(e){
     alert('Erro ao tentar abrir o seletor de apps.');
   }
+});
+
+/* Save default reader manually (user enters package name) */
+saveDefaultBtn.addEventListener('click', ()=>{
+  const info = "Se você souber o package name do app leitor (ex: com.example.reader), cole aqui. Caso não saiba, abra o app leitor pelo botão 'Abrir Leitor Externo' e escolha 'Sempre' no Android chooser para defini-lo como padrão no sistema.";
+  const pkg = prompt(info + "\\n\\nDigite o package name do app leitor (ou deixe vazio para remover):", getSavedReader()||'');
+  if(pkg === null) return;
+  if(pkg.trim()===''){ setSavedReader(null); alert('Leitor padrão removido.'); return; }
+  setSavedReader(pkg.trim());
+  alert('Leitor padrão salvo: ' + pkg.trim());
 });
 
 /* ===== Backup / export / reset / undo ===== */
@@ -444,7 +468,7 @@ exportCsv.addEventListener('click', ()=>{
   DB.entregues.concat(DB.registros).forEach(r=>{
     rows.push([r.codigo||'', r.etiqueta||'', r.tamanho||'', r.num||'', r.ts||'', r.tsEntregue||'']);
   });
-  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\\n');
   download('facilita_export.csv', csv);
 });
 backupBtn.addEventListener('click', ()=> {
@@ -474,4 +498,36 @@ function startUndoTimer(){
   const b = document.createElement('button'); b.id = btnId; b.textContent = 'Desfazer Reset (10 min)'; b.className='btn secondary';
   b.style.marginRight = '10px';
   b.onclick = ()=>{
-    const sav
+    const saved = localStorage.getItem(STORAGE_KEY + '_PRE_RESET');
+    if(!saved) return alert('Nenhum backup encontrado');
+    try{ DB = JSON.parse(saved); DB.lastUndo = null; DB.undoData = null; localStorage.removeItem(STORAGE_KEY + '_PRE_RESET'); save(); renderPending(searchPending.value.trim()); renderDelivered(); alert('Dados restaurados'); b.remove(); } catch(e){ alert('Falha ao restaurar'); }
+  };
+  document.querySelector('footer').prepend(b);
+  setTimeout(()=>{ try{ localStorage.removeItem(STORAGE_KEY + '_PRE_RESET'); if(document.getElementById(btnId)) document.getElementById(btnId).remove(); }catch(e){} }, UNDO_WINDOW_MS);
+}
+
+/* ===== Search ===== */
+searchPending.addEventListener('input', ()=>{ renderPending(searchPending.value.trim()); });
+
+/* ===== Init UI ===== */
+renderPending('');
+renderDelivered();
+scannerInputVisible.focus();
+updateSavedReaderLabel();
+
+/* ===== Keyboard shortcuts & safety ===== */
+document.addEventListener('keydown', (e)=>{
+  if(e.altKey && (e.key.toLowerCase()==='l')){ currentLotSize=null; selectSizeBtn.classList.remove('hidden'); finalizeLotBtn.classList.add('hidden'); scannerInputVisible.focus(); }
+  if(e.key === 'Escape'){ hidePopup(); scannerInputVisible.focus(); sizeModal.style.display='none'; }
+});
+
+/* ===== Help button ===== */
+helpBtn.addEventListener('click', ()=>{
+  const helpText = "Fluxo rápido:\n\n1) Toque em 'Selecionar tamanho' → escolha P/M/G.\n2) Foque no campo e bipar (seu leitor externo envia o código + ENTER) OU digite manualmente e pressione ENTER para testar.\n3) Ao finalizar o lote, toque em 'Finalizar Lote'.\n\nAbrir leitor: toque '📷 Abrir Leitor Externo' — o Android mostrará apps compatíveis; escolha 'Sempre' se quiser que o sistema defina um padrão. Para forçar a troca, use '⚙ Trocar leitor'.\n\nSe quiser fixar manualmente o leitor aqui, toque '💾 Salvar leitor padrão' e cole o package name do app (opcional).";
+  showPopup('Ajuda rápida', helpText, [{label:'OK', class:'ok-btn'}]);
+});
+
+/* ===== End ===== */
+</script>
+</body>
+</html>
