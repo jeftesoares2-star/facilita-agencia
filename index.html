@@ -398,7 +398,7 @@ setInterval(()=>{ try{ localStorage.setItem(STORAGE_KEY + '_AUTOSAVE', JSON.stri
 btnReset.addEventListener('click', ()=>{
   const pass = prompt('Senha para reset:');
   if(pass !== RESET_PASSWORD){ alert('Senha inválida'); return; }
-  const confirmText = prompt('Digite a frase de confirmação: QUERO RESETAR TUDO');
+  const confirmText = prompt('Digite a frase de confirmação: QUERO');
   if(confirmText !== 'QUERO RESETAR TUDO'){ alert('Confirmação incorreta'); return; }
   DB.lastUndo = Date.now();
   DB.undoData = JSON.stringify(DB);
