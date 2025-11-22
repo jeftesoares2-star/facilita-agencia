@@ -496,6 +496,46 @@ document.addEventListener('keydown', (e)=>{
 document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ hidePopup(); scannerInput.focus(); } });
 
 /* ===== End ===== */
+</script><!-- BOTÃO PARA EXPORTAR TODO O INDEX -->
+<button id="exportButton" style="
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 99999;
+    padding: 12px 18px;
+    border: none;
+    border-radius: 10px;
+    background: #007bff;
+    color: white;
+    font-size: 16px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+">
+    Exportar Index
+</button>
+
+<script>
+document.getElementById("exportButton").addEventListener("click", function () {
+    try {
+        // PEGAR TODO O HTML DA PÁGINA
+        let content = document.documentElement.outerHTML;
+
+        // CRIAR ARQUIVO
+        let blob = new Blob([content], { type: "text/plain" });
+
+        // CRIAR LINK PARA DOWNLOAD
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = "index-exportado.txt";
+        a.click();
+
+        URL.revokeObjectURL(url);
+
+        alert("Arquivo exportado com sucesso!");
+    } catch (e) {
+        alert("Erro ao exportar: " + e);
+    }
+});
 </script>
 </body>
 </html>
