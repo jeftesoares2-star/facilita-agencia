@@ -22,7 +22,7 @@
   .lot-btn.active{box-shadow:0 6px 20px rgba(0,0,0,0.6);transform:translateY(-2px)}
   input.scanner{width:100%;padding:12px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);font-size:18px;margin-top:8px}
   .row{display:flex;gap:8px}
-  .big{font-size:16px;padding:10px;border-radius:8px;border:0;background:var(--accent);color:#021;font-weight:700;cursor:pointer}
+  .big{font-size:16px;padding:10px;border-radius:8px;border:0;background:var(--accent);color:#021;font-weight:700;cursor:pointer;margin-top:8px;width:100%;text-align:center}
   #pendingList,#deliveredList{max-height:300px;overflow:auto;margin-top:8px}
   .item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);margin-top:8px}
   .label{font-weight:800;font-size:18px}
@@ -49,7 +49,7 @@
 <body>
 
 <header>
-  <h1> Facilita Agência — Recebimento em Lote</h1>
+  <h1>Facilita Agência — Recebimento em Lote</h1>
   <div class="top-row">
     <div class="small muted">Modo lote: escolha o tamanho antes de bipar/digitar</div>
   </div>
@@ -57,7 +57,6 @@
 
 <div class="card" id="lotCard">
   <div class="small">1) Selecionar tamanho do lote (P/M/G). Após seleção, os demais somem.</div>
-
   <div class="controls" style="margin-top:8px">
     <button id="btnLotP" class="lot-btn p">P</button>
     <button id="btnLotM" class="lot-btn m">M</button>
@@ -65,13 +64,18 @@
     <button id="btnClearLot" class="secondary" title="Finalizar lote">Finalizar Lote</button>
   </div>
 
-  <div style="margin-top:12px" class="small">2) Foque aqui e bipar ou digitar o código. ENTER  registra.</div>
+  <div style="margin-top:12px" class="small">2) Foque aqui e bipar ou digitar o código. ENTER registra.</div>
   <input id="scannerInput" class="scanner" placeholder="Campo scanner — bipar ou digitar e pressionar ENTER" autofocus autocomplete="off" />
 
+  <!-- BOTÃO ENTER -->
+  <button id="btnEnter" class="big">ENTER</button>
+
   <div style="margin-top:8px" class="small muted">Dica: escolha o lote, foque no campo e bipar/digitar.</div>
-</div><div class="card">
+</div>
+
+<div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center">
-    <h3 style="margin:0"> Pendentes (na agência)</h3>
+    <h3>Pendentes (na agência)</h3>
     <div class="row">
       <input id="searchPending" class="search" placeholder="Buscar por código ou etiqueta" />
     </div>
@@ -81,7 +85,7 @@
 
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center">
-    <h3 style="margin:0"> Entregues (histórico)</h3>
+    <h3>Entregues (histórico)</h3>
     <div class="row">
       <button id="exportCsv" class="secondary">Exportar CSV</button>
       <button id="backupBtn" class="secondary">Backup JSON</button>
@@ -108,27 +112,16 @@
 /* ===== CONFIG ===== */
 const STORAGE_KEY = 'FACILITA_LOTE_V1';
 const RESET_PASSWORD = '4608';
-const UNDO_WINDOW_MS = 10 * 60 * 1000;
-const AUTO_BACKUP_INTERVAL = 2 * 60 * 1000;
 
 /* ===== DB INIT ===== */
 let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-if(!DB) DB = {
-  registros: [],
-  entregues: [],
-  contadores: {P:0,M:0,G:0},
-  livres: {P:[],M:[],G:[]},
-  codesUsed: {},
-  lastUndo: null,
-  undoData: null
-};
+if(!DB) DB = { registros:[], entregues:[], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, codesUsed:{}, lastUndo:null, undoData:null };
 
 /* ===== ELEMENTOS ===== */
 const btnLotP = document.getElementById('btnLotP');
 const btnLotM = document.getElementById('btnLotM');
 const btnLotG = document.getElementById('btnLotG');
 const btnClearLot = document.getElementById('btnClearLot');
-
 const scannerInput = document.getElementById('scannerInput');
 const pendingList = document.getElementById('pendingList');
 const deliveredList = document.getElementById('deliveredList');
@@ -140,109 +133,91 @@ const exportCsv = document.getElementById('exportCsv');
 const backupBtn = document.getElementById('backupBtn');
 const btnReset = document.getElementById('btnReset');
 const searchPending = document.getElementById('searchPending');
+const btnEnter = document.getElementById('btnEnter');
 
 let currentLotSize = null;
 let lastAllocTime = 0;
 let lastDetected = null;
 
-/* ===== UTIL ===== */
+/* ===== FUNÇÕES ===== */
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
 function vibrate(ms=30){ if(navigator.vibrate) navigator.vibrate(ms); }
 
-function showPopup(title, text, buttons){
-  popupTitle.textContent = title || '';
-  popupText.textContent = text || '';
-  popupButtons.innerHTML = '';
-
+function showPopup(title,text,buttons){
+  popupTitle.textContent=title||'';
+  popupText.textContent=text||'';
+  popupButtons.innerHTML='';
   buttons.forEach(b=>{
-    const btn = document.createElement('button');
-    btn.textContent = b.label;
-    btn.className = b.class || 'ok-btn';
-    btn.style.margin = '6px';
-    btn.onclick = ()=>{
+    const btn=document.createElement('button');
+    btn.textContent=b.label;
+    btn.className=b.class||'ok-btn';
+    btn.style.margin='6px';
+    btn.onclick=()=>{
       if(b.onClick) b.onClick();
       hidePopup();
       scannerInput.focus();
     };
     popupButtons.appendChild(btn);
   });
-
-  popupBackdrop.style.display = 'flex';
+  popupBackdrop.style.display='flex';
 }
 
 function hidePopup(){
-  popupBackdrop.style.display = 'none';
-  popupTitle.textContent = '';
-  popupText.textContent = '';
-  popupButtons.innerHTML = '';
+  popupBackdrop.style.display='none';
+  popupTitle.textContent='';
+  popupText.textContent='';
+  popupButtons.innerHTML='';
 }
 
-/* ===== NUMERAÇÃO ===== */
 function nextNum(size){
   if(DB.livres[size] && DB.livres[size].length){
     DB.livres[size].sort((a,b)=>a-b);
     return DB.livres[size].shift();
   }
-  DB.contadores[size] = (DB.contadores[size]||0) + 1;
+  DB.contadores[size]=(DB.contadores[size]||0)+1;
   return DB.contadores[size];
 }
 
-function makeLabel(size, num){
-  return size + String(num);
-}
+function makeLabel(size,num){ return size+String(num); }
 
-/* ===== REGISTRAR ===== */
-function allocatePackage(clientCode, size){
-  if(!clientCode || !size) return null;
-
-  if(DB.codesUsed[clientCode]){
-    return { error:'Código já utilizado anteriormente.' };
-  }
-
-  const num = nextNum(size);
-  const etiqueta = makeLabel(size, num);
-
-  const rec = {codigo:clientCode, etiqueta, tamanho:size, num, ts:Date.now()};
+function allocatePackage(clientCode,size){
+  if(!clientCode||!size) return null;
+  if(DB.codesUsed[clientCode]) return {error:'Código já utilizado anteriormente.'};
+  const num=nextNum(size);
+  const etiqueta=makeLabel(size,num);
+  const rec={codigo:clientCode,etiqueta,tamanho:size,num,ts:Date.now()};
   DB.registros.push(rec);
-  DB.codesUsed[clientCode] = true;
-
+  DB.codesUsed[clientCode]=true;
   save();
   return rec;
 }
 
-/* ===== ENTREGAR ===== */
 function markDeliveredByCode(clientCode){
-  const idx = DB.registros.findIndex(r=>r.codigo===clientCode);
+  const idx=DB.registros.findIndex(r=>r.codigo===clientCode);
   if(idx===-1) return null;
-
-  const rec = DB.registros.splice(idx,1)[0];
-  rec.tsEntregue = Date.now();
+  const rec=DB.registros.splice(idx,1)[0];
+  rec.tsEntregue=Date.now();
   DB.entregues.push(rec);
-
   DB.livres[rec.tamanho].push(rec.num);
-
   save();
   return rec;
 }
 
 /* ===== RENDERS ===== */
 function renderPending(filter=''){
-  pendingList.innerHTML = '';
-
-  const list = DB.registros.slice().reverse().filter(r=>{
+  pendingList.innerHTML='';
+  const list=DB.registros.slice().reverse().filter(r=>{
     if(!filter) return true;
-    return r.codigo.includes(filter) || r.etiqueta.includes(filter);
+    return r.codigo.includes(filter)||r.etiqueta.includes(filter);
   });
-
   if(list.length===0){
-    pendingList.innerHTML = '<div class="small muted">Nenhum pacote pendente.</div>';
+    pendingList.innerHTML='<div class="small muted">Nenhum pacote pendente.</div>';
     return;
   }
-
   list.forEach(r=>{
-    const div = document.createElement('div');
+    const div=document.createElement('div');
     div.className='item';
-    div.innerHTML = `
+    div.innerHTML=`
       <div>
         <div class="label">${r.etiqueta}</div>
         <div class="small muted">${r.codigo} • ${r.tamanho} • ${new Date(r.ts).toLocaleString()}</div>
@@ -257,17 +232,15 @@ function renderPending(filter=''){
 }
 
 function renderDelivered(){
-  deliveredList.innerHTML = '';
-
+  deliveredList.innerHTML='';
   if(DB.entregues.length===0){
-    deliveredList.innerHTML = '<div class="small muted">Nenhum pacote entregue ainda.</div>';
+    deliveredList.innerHTML='<div class="small muted">Nenhum pacote entregue ainda.</div>';
     return;
   }
-
   DB.entregues.slice().reverse().forEach(r=>{
-    const div = document.createElement('div');
+    const div=document.createElement('div');
     div.className='item';
-    div.innerHTML = `
+    div.innerHTML=`
       <div>
         <div class="label">${r.etiqueta}</div>
         <div class="small muted">${r.codigo} • ${r.tamanho} • ${new Date(r.tsEntregue).toLocaleString()}</div>
@@ -275,271 +248,77 @@ function renderDelivered(){
     `;
     deliveredList.appendChild(div);
   });
-}/* ===== DETALHES E ENTREGA ===== */
-function showDetails(code){
-  const r = DB.registros.find(x=>x.codigo===code);
-  if(!r) return;
-
-  showPopup(
-    `Etiqueta: ${r.etiqueta}`,
-    `Código: ${r.codigo}\nTamanho: ${r.tamanho}\nCriado: ${new Date(r.ts).toLocaleString()}`,
-    [
-      {label:'Entregar', class:'deliver-btn', onClick:()=>deliverConfirm(r.codigo)},
-      {label:'OK', class:'ok-btn'}
-    ]
-  );
 }
 
-function deliverConfirm(code){
-  showPopup(
-    'Confirmar entrega?',
-    `Deseja marcar como ENTREGUE a etiqueta do código:\n${code}?`,
-    [
-      {label:'Sim', class:'deliver-btn', onClick:()=>doDeliver(code)},
-      {label:'Cancelar', class:'cancel-btn'}
-    ]
-  );
-}
-
-function doDeliver(code){
-  vibrate();
-  const r = markDeliveredByCode(code);
-  if(!r){
-    showPopup('Erro', 'Pacote não encontrado nos pendentes.', [{label:'OK', class:'ok-btn'}]);
-    return;
-  }
-  renderPending();
-  renderDelivered();
-}
-
-/* ===== BUSCA ===== */
-searchPending.addEventListener('input', ()=>{
-  renderPending(searchPending.value.trim());
+/* ===== BOTÕES ===== */
+btnEnter.addEventListener('click', ()=>{
+  scannerInput.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter', code:'Enter', keyCode:13, which:13, bubbles:true}));
 });
 
-/* ===== EXPORT CSV ===== */
-exportCsv.addEventListener('click', ()=>{
-  if(DB.entregues.length===0){
-    showPopup('Aviso','Nenhum item entregue para exportar.',[{label:'OK',class:'ok-btn'}]);
-    return;
-  }
-  let csv = 'codigo,etiqueta,tamanho,numero,criado,entregue\n';
-  DB.entregues.forEach(r=>{
-    csv += `${r.codigo},${r.etiqueta},${r.tamanho},${r.num},${new Date(r.ts).toISOString()},${new Date(r.tsEntregue).toISOString()}\n`;
-  });
-
-  const blob = new Blob([csv], {type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'entregues.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-});
-
-/* ===== BACKUP JSON ===== */
-backupBtn.addEventListener('click', ()=>{
-  const blob = new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'backup.json';
-  a.click();
-  URL.revokeObjectURL(url);
-});
-
-/* ===== RESET ===== */
-btnReset.addEventListener('click', ()=>{
-  showPopup(
-    'Resetar sistema',
-    'Digite a senha para resetar:',
-    []
-  );
-
-  // campo de senha dentro do popup
-  const input = document.createElement('input');
-  input.type = 'password';
-  input.placeholder = 'Senha';
-  input.style.padding = '10px';
-  input.style.width = '90%';
-  input.style.borderRadius = '8px';
-  input.style.marginBottom = '12px';
-  popupText.innerHTML='';
-  popupText.appendChild(input);
-
-  const okBtn = document.createElement('button');
-  okBtn.textContent='Confirmar';
-  okBtn.className='danger';
-  okBtn.style.margin='6px';
-  okBtn.onclick=()=>{
-    if(input.value === RESET_PASSWORD){
-      DB.undoData = JSON.parse(JSON.stringify(DB));
-      DB.lastUndo = Date.now();
-      DB = {
-        registros:[],
-        entregues:[],
-        contadores:{P:0,M:0,G:0},
-        livres:{P:[],M:[],G:[]},
-        codesUsed:{},
-        lastUndo:DB.lastUndo,
-        undoData:DB.undoData
-      };
-      save();
-      renderPending();
-      renderDelivered();
-      hidePopup();
-      showPopup('Sucesso','Sistema resetado. Pode desfazer em até 10 minutos.',[{label:'OK',class:'ok-btn'}]);
-    } else {
-      showPopup('Erro','Senha incorreta.',[{label:'OK',class:'ok-btn'}]);
-    }
-  };
-
-  const cancelBtn = document.createElement('button');
-  cancelBtn.textContent='Cancelar';
-  cancelBtn.className='cancel-btn';
-  cancelBtn.style.margin='6px';
-  cancelBtn.onclick=()=>hidePopup();
-
-  popupButtons.appendChild(okBtn);
-  popupButtons.appendChild(cancelBtn);
-});/* ===== ENTER UNIVERSAL (PC + ANDROID + TECLADO QUE ENVIA TAB) ===== */
-
-/* Bloqueia TAB (→| do Android) e converte em ENTER */
-scannerInput.addEventListener('keydown', function(e){
-  if(e.key === 'Tab'){           // seu teclado está enviando TAB
-    e.preventDefault();          // impede mudar o foco
-    e.stopPropagation();
-    simulateEnter();             // converte TAB → ENTER real
-  }
-});
-
-/* Detecta ENTER IME (caso algum teclado envie Unidentified + Enter) */
-scannerInput.addEventListener('keydown', function(e){
-  if(e.key === 'Unidentified' && e.code === 'Enter'){
-    e.preventDefault();
-    e.stopPropagation();
-    simulateEnter();
-  }
-});
-
-/* Simulador de ENTER real */
-function simulateEnter(){
-  const event = new KeyboardEvent('keydown', {
-    key:'Enter',
-    code:'Enter',
-    keyCode:13,
-    which:13,
-    bubbles:true
-  });
-  scannerInput.dispatchEvent(event);
-}
-
-/* ===== PROCESSAMENTO PRINCIPAL DO ENTER ===== */
-scannerInput.addEventListener('keydown', function(e){
-  if (
-    e.key === 'Enter' || 
-    e.key === 'Go' || 
-    e.key === 'Search' || 
-    e.key === 'Done' || 
-    e.key === 'Next' || 
-    e.key === 'Send' ||
-    e.code === 'Enter' ||
-    e.keyCode === 13 ||
-    e.which === 13 ||
-    e.key === '\n' ||
-    e.key === '\r'
-  ){
-    e.preventDefault();
-    e.stopPropagation();
-
-    const code = scannerInput.value.trim();
-    if(!code){ scannerInput.value=''; return; }
-
-    const now = Date.now();
-    if(lastDetected === code && (now - lastAllocTime) < 600){
-      scannerInput.value='';
-      return;
-    }
-    lastDetected = code;
-    lastAllocTime = now;
-
-    const pend = DB.registros.find(r=>r.codigo===code);
-    if(pend){
-      showPopup('Pendente','Este código já está pendente.',[{label:'OK',class:'ok-btn'}]);
-      scannerInput.value='';
-      return;
-    }
-
-    const del = DB.entregues.find(r=>r.codigo===code);
-    if(del){
-      showPopup('Já entregue', `Este código já foi entregue.\nEtiqueta: ${del.etiqueta}`,[{label:'OK',class:'ok-btn'}]);
-      scannerInput.value='';
-      return;
-    }
-
-    if(!currentLotSize){
-      showPopup('Escolha o tamanho','Selecione P / M / G antes de bipar ou digitar.',[{label:'OK',class:'ok-btn'}]);
-      scannerInput.value='';
-      return;
-    }
-
-    const rec = allocatePackage(code, currentLotSize);
-    if(rec && rec.error){
-      showPopup('Erro', rec.error,[{label:'OK',class:'ok-btn'}]);
-      scannerInput.value='';
-      return;
-    }
-
-    showPopup('Etiqueta gerada', `Etiqueta: ${rec.etiqueta}\nCódigo: ${rec.codigo}`,[{label:'OK',class:'ok-btn'}]);
-    renderPending();
-    scannerInput.value='';
-  }
-});
-
-/* ===== BOTÕES DE LOTE ===== */
 function setLot(size){
-  currentLotSize = size;
-
+  currentLotSize=size;
   btnLotP.classList.remove('active');
   btnLotM.classList.remove('active');
   btnLotG.classList.remove('active');
-
   if(size==='P') btnLotP.classList.add('active');
   if(size==='M') btnLotM.classList.add('active');
   if(size==='G') btnLotG.classList.add('active');
-
   btnLotP.style.display = (size==='P'?'block':'none');
   btnLotM.style.display = (size==='M'?'block':'none');
   btnLotG.style.display = (size==='G'?'block':'none');
-
   scannerInput.focus();
 }
 
-btnLotP.addEventListener('click', ()=>setLot('P'));
-btnLotM.addEventListener('click', ()=>setLot('M'));
-btnLotG.addEventListener('click', ()=>setLot('G'));
-
-btnClearLot.addEventListener('click', ()=>{
-  currentLotSize = null;
+btnLotP.addEventListener('click',()=>setLot('P'));
+btnLotM.addEventListener('click',()=>setLot('M'));
+btnLotG.addEventListener('click',()=>setLot('G'));
+btnClearLot.addEventListener('click',()=>{
+  currentLotSize=null;
   btnLotP.classList.remove('active');
   btnLotM.classList.remove('active');
   btnLotG.classList.remove('active');
-
   btnLotP.style.display='block';
   btnLotM.style.display='block';
   btnLotG.style.display='block';
-
   scannerInput.focus();
 });
 
-/* ===== INICIALIZAÇÃO ===== */
+/* ===== ENTER UNIVERSAL ===== */
+scannerInput.addEventListener('keydown',function(e){
+  if(['Enter','Go','Search','Done','Next','Send'].includes(e.key) || e.code==='Enter' || e.keyCode===13 || e.which===13){
+    e.preventDefault();
+    e.stopPropagation();
+    processScanner();
+  }
+});
+
+function processScanner(){
+  const code=scannerInput.value.trim();
+  if(!code){scannerInput.value='';return;}
+  const now=Date.now();
+  if(lastDetected===code && (now-lastAllocTime)<600){scannerInput.value='';return;}
+  lastDetected=code; lastAllocTime=now;
+
+  if(DB.registros.find(r=>r.codigo===code)){
+    showPopup('Pendente','Este código já está pendente.',[{label:'OK',class:'ok-btn'}]);
+    scannerInput.value=''; return;
+  }
+
+  const del=DB.entregues.find(r=>r.codigo===code);
+  if(del){showPopup('Já entregue',`Este código já foi entregue.\nEtiqueta: ${del.etiqueta}`,[{label:'OK',class:'ok-btn'}]);scannerInput.value='';return;}
+
+  if(!currentLotSize){showPopup('Escolha o tamanho','Selecione P / M / G antes de bipar ou digitar.',[{label:'OK',class:'ok-btn'}]);scannerInput.value='';return;}
+
+  const rec=allocatePackage(code,currentLotSize);
+  if(rec && rec.error){showPopup('Erro',rec.error,[{label:'OK',class:'ok-btn'}]);scannerInput.value='';return;}
+
+  showPopup('Etiqueta gerada', `Etiqueta: ${rec.etiqueta}\nCódigo: ${rec.codigo}`,[{label:'OK',class:'ok-btn'}]);
+  renderPending(); scannerInput.value='';
+}
+
 renderPending();
 renderDelivered();
 scannerInput.focus();
-
-document.addEventListener('keydown',(e)=>{
-  if(e.key==='Escape'){ hidePopup(); scannerInput.focus(); }
-});
 </script>
 </body>
 </html>
