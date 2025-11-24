@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Facilita Agência — Recebimento em Lote</title>
+<meta name="theme-color" content="#06b6d4">
+<style>
+  :root{
+    --bg:#071228; --card:#0f172a; --accent:#06b6d4; --muted:#94a3b8; --white:#eef2ff;
+    --p:#16a34a; --m:#2563eb; --g:#dc2626;
+  }
+  body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--white);padding:12px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  h1{font-size:18px;margin:0}
+  .card{background:var(--card);padding:12px;border-radius:10px;margin-top:12px}
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .lot-btn{padding:12px 18px;border-radius:10px;border:0;font-weight:800;font-size:18px;cursor:pointer;min-width:72px}
+  .lot-btn.p{background:var(--p);color:#061a10}
+  .lot-btn.m{background:var(--m);color:#eaf2ff}
+  .lot-btn.g{background:var(--g);color:#fff}
+  .lot-btn.active{box-shadow:0 6px 20px rgba(0,0,0,0.6);transform:translateY(-2px)}
+  input.scanner{width:100%;padding:12px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);font-size:18px;margin-top:8px}
+  .row{display:flex;gap:8px}
+  .big{font-size:16px;padding:10px;border-radius:8px;border:0;background:var(--accent);color:#021;font-weight:700;cursor:pointer}
+  #pendingList,#deliveredList{max-height:300px;overflow:auto;margin-top:8px}
+  .item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);margin-top:8px}
+  .label{font-weight:800;font-size:18px}
+  .small{color:var(--muted);font-size:13px}
+  .muted{color:var(--muted)}
+  footer{margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .danger{background:#7f1d1d;color:#fff;padding:10px;border-radius:8px;border:0;cursor:pointer}
+  .secondary{background:#111827;color:#fff;padding:10px;border-radius:8px;border:0;cursor:pointer}
+
+  /* POPUP central grande */
+  .popup-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:9999}
+  .popup{background:#0b1220;padding:20px;border-radius:12px;min-width:300px;max-width:92%;text-align:center;color:var(--white);box-shadow:0 10px 40px rgba(0,0,0,0.6)}
+  .popup h2{margin:0 0 12px 0;font-size:28px}
+  .popup p{margin:0 0 16px 0;color:var(--muted);font-size:16px}
+  .popup .btn-row{display:flex;gap:8px;justify-content:center}
+  .ok-btn{background:var(--accent);color:#021;border:0;padding:12px 18px;border-radius:8px;font-weight:800;cursor:pointer}
+  .deliver-btn{background:#10b981;color:#021;border:0;padding:12px 18px;border-radius:8px;font-weight:800;cursor:pointer}
+  .cancel-btn{background:#374151;color:#fff;border:0;padding:12px 18px;border-radius:8px;cursor:pointer}
+
+  .search{width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.02);color:var(--white);font-size:14px;margin-top:8px}
+  .top-row{display:flex;gap:8px;align-items:center}</style>
+</head>
+<body>
+<header>
+  <h1>📦 Facilita Agência — Recebimento em Lote</h1>
+  <div class="top-row">
+    <div class="small muted">Modo lote: escolha o tamanho antes de bipar</div>
+  </div>
+</header>
+
+<div class="card" id="lotCard">
+  <div class="small">1) Selecionar tamanho do lote (após seleção os próximos bipe(s) geram etiquetas desse tamanho)</div>
+  <div class="controls" style="margin-top:8px">
+    <button id="btnLotP" class="lot-btn p">P</button>
+    <button id="btnLotM" class="lot-btn m">M</button>
+    <button id="btnLotG" class="lot-btn g">G</button>
+    <button id="btnClearLot" class="secondary" title="Finalizar lote">Finalizar Lote</button>
+  </div>
+
+  <div style="margin-top:12px" class="small">2) Foque aqui e comece a bipar ou digitar o código. ENTER → registra.</div>
+  <input id="scannerInput" class="scanner" placeholder="Campo scanner — bipar ou digitar e pressionar ENTER" autofocus autocomplete="off" />
+
+  <div style="margin-top:8px" class="small muted">Dica: escolha o lote, foque no campo e bipar ou digitar em sequência.</div>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h3 style="margin:0">📋 Pendentes (na agência)</h3>
+    <div class="row">
+      <input id="searchPending" class="search" placeholder="Buscar por código ou etiqueta" />
+    </div>
+  </div>
+  <div id="pendingList"></div>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h3 style="margin:0">✅ Entregues (histórico)</h3>
+    <div class="row">
+      <button id="exportCsv" class="secondary">Exportar CSV</button>
+      <button id="backupBtn" class="secondary">Backup JSON</button>
+    </div>
+  </div>
+  <div id="deliveredList"></div>
+</div>
+
+<footer>
+  <button id="btnReset" class="danger">Resetar (protegido)</button>
+  <div class="small muted">Backup automático a cada 2 minutos; desfazer reset disponível por 10 minutos.</div>
+</footer>
+
+<!-- POPUP backdrop & content -->
+<div id="popupBackdrop" class="popup-backdrop">
+  <div id="popup" class="popup" role="dialog" aria-modal="true">
+    <h2 id="popupTitle"></h2>
+    <p id="popupText"></p>
+    <div id="popupButtons" class="btn-row"></div>
+  </div>
+</div>
+
+<script>
+/* ===== CONFIG ===== */
+const STORAGE_KEY = 'FACILITA_LOTE_V1';
+const RESET_PASSWORD = '4608';
+const UNDO_WINDOW_MS = 10 * 60 * 1000;
+const AUTO_BACKUP_INTERVAL = 2 * 60 * 1000;
+
+/* ===== DB init ===== */
+let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+if(!DB) DB = {
+  registros: [],
+  entregues: [],
+  contadores: {P:0,M:0,G:0},
+  livres: {P:[],M:[],G:[]},
+  codesUsed: {},
+  lastUndo: null,
+  undoData: null
+};
+
+const btnLotP = document.getElementById('btnLotP');
+const btnLotM = document.getElementById('btnLotM');
+const btnLotG = document.getElementById('btnLotG');
+const btnClearLot = document.getElementById('btnClearLot');
+
+const scannerInput = document.getElementById('scannerInput');
+const pendingList = document.getElementById('pendingList');
+const deliveredList = document.getElementById('deliveredList');
+const popupBackdrop = document.getElementById('popupBackdrop');
+const popupTitle = document.getElementById('popupTitle');
+const popupText = document.getElementById('popupText');
+const popupButtons = document.getElementById('popupButtons');
+const exportCsv = document.getElementById('exportCsv');
+const backupBtn = document.getElementById('backupBtn');
+const btnReset = document.getElementById('btnReset');
+const searchPending = document.getElementById('searchPending');
+
+let currentLotSize = null;
+let lastAllocTime = 0;
+let lastDetected = null;
+
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
+function vibrate(ms=30){ if(navigator.vibrate) navigator.vibrate(ms); }/* ===== Popup Controller ===== */
+function showPopup(title, text, buttons){
+  popupTitle.textContent = title || '';
+  popupText.textContent = text || '';
+  popupButtons.innerHTML = '';
+  buttons.forEach(b=>{
+    const btn = document.createElement('button');
+    btn.textContent = b.label;
+    btn.className = b.class || 'ok-btn';
+    btn.style.margin = '6px';
+    btn.onclick = ()=>{
+      try{ b.onClick && b.onClick(); }catch(e){}
+      hidePopup();
+      scannerInput.focus();
+    };
+    popupButtons.appendChild(btn);
+  });
+  popupBackdrop.style.display = 'flex';
+}
+function hidePopup(){
+  popupBackdrop.style.display = 'none';
+  popupTitle.textContent = '';
+  popupText.textContent = '';
+  popupButtons.innerHTML = '';
+}
+
+/* ===== Lógica de numeração ===== */
+function nextNum(size){
+  if(DB.livres[size] && DB.livres[size].length){
+    DB.livres[size].sort((a,b)=>a-b);
+    return DB.livres[size].shift();
+  }
+  DB.contadores[size] = (DB.contadores[size]||0) + 1;
+  return DB.contadores[size];
+}
+function makeLabel(size, num){ return size + String(num); }
+
+/* ===== Registrar pacote ===== */
+function allocatePackage(clientCode, size){
+  if(!clientCode || !size) return null;
+  if(DB.codesUsed[clientCode]) {
+    return { error: 'Código já utilizado anteriormente.' };
+  }
+
+  const num = nextNum(size);
+  const etiqueta = makeLabel(size, num);
+  const rec = { codigo: clientCode, etiqueta, tamanho:size, num, ts: Date.now() };
+
+  DB.registros.push(rec);
+  DB.codesUsed[clientCode] = true;
+  save();
+  return rec;
+}
+
+/* ===== Entregar ===== */
+function markDeliveredByCode(clientCode){
+  const idx = DB.registros.findIndex(r => r.codigo === clientCode);
+  if(idx === -1) return null;
+
+  const rec = DB.registros.splice(idx,1)[0];
+  rec.tsEntregue = Date.now();
+  DB.entregues.push(rec);
+
+  if(rec && rec.tamanho && rec.num != null){
+    DB.livres[rec.tamanho].push(rec.num);
+  }
+
+  save();
+  return rec;
+}
+
+/* ===== Renderização ===== */
+function renderPending(filter=''){
+  pendingList.innerHTML = '';
+  const list = DB.registros.slice().reverse().filter(r=>{
+    if(!filter) return true;
+    return (r.codigo && r.codigo.includes(filter)) || (r.etiqueta && r.etiqueta.includes(filter));
+  });
+
+  if(list.length===0){
+    pendingList.innerHTML = '<div class="small muted">Nenhum pacote pendente.</div>';
+    return;
+  }
+
+  list.forEach(r=>{
+    const div = document.createElement('div');
+    div.className='item';
+    div.innerHTML = `
+      <div>
+        <div class="label">${r.etiqueta}</div>
+        <div class="small muted">${r.codigo} • ${r.tamanho} • ${new Date(r.ts).toLocaleString()}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="secondary" onclick="showDetails('${r.codigo}')">Ver</button>
+        <button class="deliver-btn" onclick="deliverConfirm('${r.codigo}')">Entregar</button>
+      </div>
+    `;
+    pendingList.appendChild(div);
+  });
+}
+
+function renderDelivered(){
+  deliveredList.innerHTML = '';
+  if(DB.entregues.length===0){
+    deliveredList.innerHTML = '<div class="small muted">Nenhum pacote entregue ainda.</div>';
+    return;
+  }
+
+  DB.entregues.slice().reverse().forEach(r=>{
+    const div = document.createElement('div');
+    div.className='item';
+    div.innerHTML = `
+      <div>
+        <div class="label">${r.etiqueta}</div>
+        <div class="small muted">${r.codigo} • ${r.tamanho} • ${new Date(r.tsEntregue).toLocaleString()}</div>
+      </div>
+    `;
+    deliveredList.appendChild(div);
+  });
+}
+
+/* ===== Popups auxiliares ===== */
+function showGeneratedPopup(rec){
+  showPopup('Etiqueta gerada', `Etiqueta: ${rec.etiqueta}\nCliente: ${rec.codigo}`, [
+    { label:'OK', class:'ok-btn', onClick:()=>vibrate(20) }
+  ]);
+}
+
+function showPendingPopup(rec){
+  showPopup('Pacote pendente', `Etiqueta: ${rec.etiqueta}\nCliente: ${rec.codigo}`, [
+    { label:'Entregar', class:'deliver-btn', onClick:()=>{
+      const d = markDeliveredByCode(rec.codigo);
+      if(d){
+        showPopup('Entregue', `Entregue: ${d.etiqueta}`, [{label:'OK', class:'ok-btn'}]);
+        renderPending(searchPending.value.trim());
+        renderDelivered();
+      }
+    }},
+    { label:'Cancelar', class:'cancel-btn' }
+  ]);
+}
+
+window.showDetails = function(codigo){
+  const rec = DB.registros.find(r=>r.codigo===codigo);
+  if(!rec) return;
+  showPopup('Detalhes', `Etiqueta: ${rec.etiqueta}\nCliente: ${rec.codigo}\nTamanho: ${rec.tamanho}`, [
+    { label:'Fechar', class:'ok-btn' }
+  ]);
+};
+
+window.deliverConfirm = function(codigo){
+  const rec = DB.registros.find(r=>r.codigo===codigo);
+  if(!rec) return;
+  showPopup('Confirmar entrega', `Entregar etiqueta ${rec.etiqueta}?`, [
+    { label:'Sim, entregar', class:'deliver-btn', onClick:()=>{
+      const d = markDeliveredByCode(codigo);
+      if(d){
+        showPopup('Entregue', `Entregue: ${d.etiqueta}`, [{label:'OK', class:'ok-btn'}]);
+        renderPending(searchPending.value.trim());
+        renderDelivered();
+      }
+    }},
+    { label:'Cancelar', class:'cancel-btn' }
+  ]);
+};/* ===== Scanner + Digitação manual (ENTER) ===== */
+scannerInput.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){
+    const code = scannerInput.value.trim();
+    if(!code){
+      scannerInput.value='';
+      return;
+    }
+
+    const now = Date.now();
+    if(lastDetected === code && (now - lastAllocTime) < 600) {
+      scannerInput.value='';
+      return;
+    }
+    lastDetected = code;
+    lastAllocTime = now;
+
+    const pend = DB.registros.find(r=>r.codigo === code);
+    if(pend){
+      showPendingPopup(pend);
+      scannerInput.value='';
+      return;
+    }
+
+    const del = DB.entregues.find(r=>r.codigo === code);
+    if(del){
+      showPopup('Já entregue', `Esse código já foi entregue.\nEtiqueta: ${del.etiqueta}`, [
+        {label:'OK', class:'ok-btn'}
+      ]);
+      scannerInput.value='';
+      return;
+    }
+
+    if(!currentLotSize){
+      showPopup('Escolha o tamanho', 'Selecione P / M / G antes de bipar ou digitar.', [
+        {label:'OK', class:'ok-btn'}
+      ]);
+      scannerInput.value='';
+      return;
+    }
+
+    const rec = allocatePackage(code, currentLotSize);
+    if(rec && rec.error){
+      showPopup('Erro', rec.error, [{label:'OK', class:'ok-btn'}]);
+      scannerInput.value='';
+      return;
+    }
+
+    showGeneratedPopup(rec);
+    scannerInput.value='';
+    return;
+  }
+});
+
+/* ===== Botões do lote (com ocultação) ===== */
+function setLot(size){
+  currentLotSize = size;
+
+  btnLotP.classList.remove('active');
+  btnLotM.classList.remove('active');
+  btnLotG.classList.remove('active');
+
+  if(size==='P') btnLotP.classList.add('active');
+  if(size==='M') btnLotM.classList.add('active');
+  if(size==='G') btnLotG.classList.add('active');
+
+  /* Ocultar os outros tamanhos */
+  btnLotP.style.display = (size==='P'?'block':'none');
+  btnLotM.style.display = (size==='M'?'block':'none');
+  btnLotG.style.display = (size==='G'?'block':'none');
+
+  scannerInput.focus();
+}
+
+btnLotP.addEventListener('click', ()=>setLot('P'));
+btnLotM.addEventListener('click', ()=>setLot('M'));
+btnLotG.addEventListener('click', ()=>setLot('G'));
+
+/* ===== FINALIZAR LOTE (mostrar botões novamente) ===== */
+btnClearLot.addEventListener('click', ()=>{
+  currentLotSize = null;
+
+  btnLotP.classList.remove('active');
+  btnLotM.classList.remove('active');
+  btnLotG.classList.remove('active');
+
+  btnLotP.style.display='block';
+  btnLotM.style.display='block';
+  btnLotG.style.display='block';
+
+  scannerInput.focus();
+});
+
+/* ===== Export/Backup ===== */
+function download(filename,text){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text],{type:'application/json'}));
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+exportCsv.addEventListener('click', ()=>{
+  const rows = [['codigo','etiqueta','tamanho','num','ts','tsEntregue']];
+  DB.entregues.concat(DB.registros).forEach(r=>{
+    rows.push([r.codigo||'',r.etiqueta||'',r.tamanho||'',r.num||'',r.ts||'',r.tsEntregue||'']);
+  });
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  download('facilita_export.csv', csv);
+});
+
+backupBtn.addEventListener('click', ()=>{
+  download('facilita_backup_'+Date.now()+'.json', JSON.stringify(DB,null,2));
+});
+
+/* ===== Reset protegido com UNDO ===== */
+btnReset.addEventListener('click', ()=>{
+  const pass = prompt('Senha para reset:');
+  if(pass !== RESET_PASSWORD) return alert('Senha inválida');
+
+  const confirmText = prompt('Digite: QUERO RESETAR TUDO');
+  if(confirmText !== 'QUERO RESETAR TUDO') return alert('Confirmação incorreta');
+
+  DB.lastUndo = Date.now();
+  DB.undoData = JSON.stringify(DB);
+  localStorage.setItem(STORAGE_KEY+'_PRE_RESET', DB.undoData);
+
+  DB = { registros:[], entregues:[], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, codesUsed:{}, lastUndo:DB.lastUndo, undoData:DB.undoData };
+  save();
+
+  renderPending(searchPending.value.trim());
+  renderDelivered();
+
+  showPopup('Reset feito','Você tem 10 minutos para desfazer.',[{label:'OK',class:'ok-btn'}]);
+});
+
+/* ===== Busca ===== */
+searchPending.addEventListener('input', ()=>{
+  renderPending(searchPending.value.trim());
+});
+
+/* ===== Início ===== */
+renderPending('');
+renderDelivered();
+scannerInput.focus();
+
+/* Fechar popup com ESC */
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape'){ hidePopup(); scannerInput.focus(); }
+});
+</script>
+
+</body>
+</html>/* 
+===== Scanner + Digitação manual (ENTER) ===== */
+scannerInput.addEventListener('keydown', function(e){
+
+  if(e.key === 'Enter'){
+    e.preventDefault();      // garante captura do enter
+    e.stopPropagation();     // impede conflito com outros eventos
+
+    const code = scannerInput.value.trim();
+
+    if(!code){
+      scannerInput.value='';
+      return;
+    }
+
+    const now = Date.now();
+    if(lastDetected === code && (now - lastAllocTime) < 600){
+      scannerInput.value='';
+      return;
+    }
+
+    lastDetected = code;
+    lastAllocTime = now;
+
+    // já pendente
+    const pend = DB.registros.find(r => r.codigo === code);
+    if(pend){
+      showPendingPopup(pend);
+      scannerInput.value='';
+      return;
+    }
+
+    // já entregue
+    const del = DB.entregues.find(r => r.codigo === code);
+    if(del){
+      showPopup('Já entregue', `Esse código já foi entregue.\nEtiqueta: ${del.etiqueta}`, [
+        {label:'OK', class:'ok-btn'}
+      ]);
+      scannerInput.value='';
+      return;
+    }
+
+    // sem lote
+    if(!currentLotSize){
+      showPopup('Escolha o tamanho', 'Selecione P / M / G antes de bipar ou digitar.', [
+        {label:'OK', class:'ok-btn'}
+      ]);
+      scannerInput.value='';
+      return;
+    }
+
+    // gerar etiqueta
+    const rec = allocatePackage(code, currentLotSize);
+    if(rec && rec.error){
+      showPopup('Erro', rec.error, [{label:'OK', class:'ok-btn'}]);
+      scannerInput.value='';
+      return;
+    }
+
+    // sucesso
+    showGeneratedPopup(rec);
+    scannerInput.value='';
+  }
+});
