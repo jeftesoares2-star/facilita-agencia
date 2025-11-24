@@ -49,7 +49,7 @@
 <body>
 
 <header>
-  <h1>📦 Facilita Agência — Recebimento em Lote</h1>
+  <h1> Facilita Agência — Recebimento em Lote</h1>
   <div class="top-row">
     <div class="small muted">Modo lote: escolha o tamanho antes de bipar/digitar</div>
   </div>
@@ -65,13 +65,13 @@
     <button id="btnClearLot" class="secondary" title="Finalizar lote">Finalizar Lote</button>
   </div>
 
-  <div style="margin-top:12px" class="small">2) Foque aqui e bipar ou digitar o código. ENTER → registra.</div>
+  <div style="margin-top:12px" class="small">2) Foque aqui e bipar ou digitar o código. ENTER  registra.</div>
   <input id="scannerInput" class="scanner" placeholder="Campo scanner — bipar ou digitar e pressionar ENTER" autofocus autocomplete="off" />
 
   <div style="margin-top:8px" class="small muted">Dica: escolha o lote, foque no campo e bipar/digitar.</div>
 </div><div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center">
-    <h3 style="margin:0">📋 Pendentes (na agência)</h3>
+    <h3 style="margin:0"> Pendentes (na agência)</h3>
     <div class="row">
       <input id="searchPending" class="search" placeholder="Buscar por código ou etiqueta" />
     </div>
@@ -81,7 +81,7 @@
 
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center">
-    <h3 style="margin:0">✅ Entregues (histórico)</h3>
+    <h3 style="margin:0"> Entregues (histórico)</h3>
     <div class="row">
       <button id="exportCsv" class="secondary">Exportar CSV</button>
       <button id="backupBtn" class="secondary">Backup JSON</button>
@@ -402,16 +402,27 @@ btnReset.addEventListener('click', ()=>{
 
   popupButtons.appendChild(okBtn);
   popupButtons.appendChild(cancelBtn);
-});/* ===== FUNÇÃO ENTER UNIVERSAL (PC + ANDROID) ===== */
+});/* ===== ENTER UNIVERSAL (PC + ANDROID + TECLADO QUE ENVIA TAB) ===== */
 
-/* Detecta ENTER IME (→|) corretamente no Android */
+/* Bloqueia TAB (→| do Android) e converte em ENTER */
+scannerInput.addEventListener('keydown', function(e){
+  if(e.key === 'Tab'){           // seu teclado está enviando TAB
+    e.preventDefault();          // impede mudar o foco
+    e.stopPropagation();
+    simulateEnter();             // converte TAB → ENTER real
+  }
+});
+
+/* Detecta ENTER IME (caso algum teclado envie Unidentified + Enter) */
 scannerInput.addEventListener('keydown', function(e){
   if(e.key === 'Unidentified' && e.code === 'Enter'){
+    e.preventDefault();
+    e.stopPropagation();
     simulateEnter();
   }
 });
 
-/* Simula ENTER real */
+/* Simulador de ENTER real */
 function simulateEnter(){
   const event = new KeyboardEvent('keydown', {
     key:'Enter',
@@ -423,7 +434,7 @@ function simulateEnter(){
   scannerInput.dispatchEvent(event);
 }
 
-/* Evento principal que processa o ENTER */
+/* ===== PROCESSAMENTO PRINCIPAL DO ENTER ===== */
 scannerInput.addEventListener('keydown', function(e){
   if (
     e.key === 'Enter' || 
@@ -497,7 +508,6 @@ function setLot(size){
   if(size==='M') btnLotM.classList.add('active');
   if(size==='G') btnLotG.classList.add('active');
 
-  /* Oculta os outros tamanhos */
   btnLotP.style.display = (size==='P'?'block':'none');
   btnLotM.style.display = (size==='M'?'block':'none');
   btnLotG.style.display = (size==='G'?'block':'none');
@@ -509,7 +519,6 @@ btnLotP.addEventListener('click', ()=>setLot('P'));
 btnLotM.addEventListener('click', ()=>setLot('M'));
 btnLotG.addEventListener('click', ()=>setLot('G'));
 
-/* ===== FINALIZAR LOTE ===== */
 btnClearLot.addEventListener('click', ()=>{
   currentLotSize = null;
   btnLotP.classList.remove('active');
