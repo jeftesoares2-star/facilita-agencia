@@ -31,7 +31,8 @@
   footer{margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .danger{background:#7f1d1d;color:#fff;padding:10px;border-radius:8px;border:0;cursor:pointer}
   .secondary{background:#111827;color:#fff;padding:10px;border-radius:8px;border:0;cursor:pointer}
-  /* POPUP central grande (B) */
+
+  /* POPUP central grande */
   .popup-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:9999}
   .popup{background:#0b1220;padding:20px;border-radius:12px;min-width:300px;max-width:92%;text-align:center;color:var(--white);box-shadow:0 10px 40px rgba(0,0,0,0.6)}
   .popup h2{margin:0 0 12px 0;font-size:28px}
@@ -40,13 +41,9 @@
   .ok-btn{background:var(--accent);color:#021;border:0;padding:12px 18px;border-radius:8px;font-weight:800;cursor:pointer}
   .deliver-btn{background:#10b981;color:#021;border:0;padding:12px 18px;border-radius:8px;font-weight:800;cursor:pointer}
   .cancel-btn{background:#374151;color:#fff;border:0;padding:12px 18px;border-radius:8px;cursor:pointer}
+
   .search{width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.02);color:var(--white);font-size:14px;margin-top:8px}
-  .top-row{display:flex;gap:8px;align-items:center}
-  @media (max-width:520px){
-    .lot-btn{min-width:64px;padding:10px;font-size:16px}
-    .popup h2{font-size:22px}
-  }
-</style>
+  .top-row{display:flex;gap:8px;align-items:center}</style>
 </head>
 <body>
 <header>
@@ -62,13 +59,13 @@
     <button id="btnLotP" class="lot-btn p">P</button>
     <button id="btnLotM" class="lot-btn m">M</button>
     <button id="btnLotG" class="lot-btn g">G</button>
-    <button id="btnClearLot" class="secondary" title="Limpar seleção">Limpar</button>
+    <button id="btnClearLot" class="secondary" title="Finalizar lote">Finalizar Lote</button>
   </div>
 
-  <div style="margin-top:12px" class="small">2) Foque aqui e comece a bipar (leitor externo que emula teclado). Cada bip + ENTER → registra.</div>
-  <input id="scannerInput" class="scanner" placeholder="Campo scanner — foque aqui e bipar (scanner envia ENTER)" autofocus autocomplete="off" />
+  <div style="margin-top:12px" class="small">2) Foque aqui e comece a bipar ou digitar o código. ENTER → registra.</div>
+  <input id="scannerInput" class="scanner" placeholder="Campo scanner — bipar ou digitar e pressionar ENTER" autofocus autocomplete="off" />
 
-  <div style="margin-top:8px" class="small muted">Dica: escolha o lote M, foque no campo e bipar em sequência. Ao aparecer a etiqueta, clique OK rapidamente.</div>
+  <div style="margin-top:8px" class="small muted">Dica: escolha o lote, foque no campo e bipar ou digitar em sequência.</div>
 </div>
 
 <div class="card">
@@ -100,7 +97,6 @@
 <!-- POPUP backdrop & content -->
 <div id="popupBackdrop" class="popup-backdrop">
   <div id="popup" class="popup" role="dialog" aria-modal="true">
-    <!-- conteúdo dinâmico -->
     <h2 id="popupTitle"></h2>
     <p id="popupText"></p>
     <div id="popupButtons" class="btn-row"></div>
@@ -111,26 +107,26 @@
 /* ===== CONFIG ===== */
 const STORAGE_KEY = 'FACILITA_LOTE_V1';
 const RESET_PASSWORD = '4608';
-const UNDO_WINDOW_MS = 10 * 60 * 1000; // 10 min
-const AUTO_BACKUP_INTERVAL = 2 * 60 * 1000; // 2 min
+const UNDO_WINDOW_MS = 10 * 60 * 1000;
+const AUTO_BACKUP_INTERVAL = 2 * 60 * 1000;
 
 /* ===== DB init ===== */
 let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
 if(!DB) DB = {
-  registros: [],      // pendentes {codigo,etiqueta,tamanho,num,ts}
-  entregues: [],      // historico {codigo,etiqueta,tamanho,num,ts,tsEntregue}
+  registros: [],
+  entregues: [],
   contadores: {P:0,M:0,G:0},
-  livres: {P:[],M:[],G:[]}, // números liberados por tamanho
-  codesUsed: {},      // codigoCliente -> true (impede reutilização do código do cliente)
+  livres: {P:[],M:[],G:[]},
+  codesUsed: {},
   lastUndo: null,
   undoData: null
 };
 
-/* ===== UI refs ===== */
 const btnLotP = document.getElementById('btnLotP');
 const btnLotM = document.getElementById('btnLotM');
 const btnLotG = document.getElementById('btnLotG');
 const btnClearLot = document.getElementById('btnClearLot');
+
 const scannerInput = document.getElementById('scannerInput');
 const pendingList = document.getElementById('pendingList');
 const deliveredList = document.getElementById('deliveredList');
@@ -143,14 +139,13 @@ const backupBtn = document.getElementById('backupBtn');
 const btnReset = document.getElementById('btnReset');
 const searchPending = document.getElementById('searchPending');
 
-/* ===== State ===== */
-let currentLotSize = null;      // 'P'|'M'|'G' or null
+let currentLotSize = null;
 let lastAllocTime = 0;
 let lastDetected = null;
 
-/* ===== Utilities ===== */
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
-function showPopup(title, text, buttons){ // buttons: [{label, class, onClick}]
+function vibrate(ms=30){ if(navigator.vibrate) navigator.vibrate(ms); }/* ===== Popup Controller ===== */
+function showPopup(title, text, buttons){
   popupTitle.textContent = title || '';
   popupText.textContent = text || '';
   popupButtons.innerHTML = '';
@@ -160,7 +155,7 @@ function showPopup(title, text, buttons){ // buttons: [{label, class, onClick}]
     btn.className = b.class || 'ok-btn';
     btn.style.margin = '6px';
     btn.onclick = ()=>{
-      try{ b.onClick && b.onClick(); } catch(e){ console.error(e); }
+      try{ b.onClick && b.onClick(); }catch(e){}
       hidePopup();
       scannerInput.focus();
     };
@@ -168,12 +163,15 @@ function showPopup(title, text, buttons){ // buttons: [{label, class, onClick}]
   });
   popupBackdrop.style.display = 'flex';
 }
-function hidePopup(){ popupBackdrop.style.display = 'none'; popupTitle.textContent=''; popupText.textContent=''; popupButtons.innerHTML=''; }
-function vibrate(ms=30){ if(navigator.vibrate) navigator.vibrate(ms); }
+function hidePopup(){
+  popupBackdrop.style.display = 'none';
+  popupTitle.textContent = '';
+  popupText.textContent = '';
+  popupButtons.innerHTML = '';
+}
 
-/* numbering */
+/* ===== Lógica de numeração ===== */
 function nextNum(size){
-  // reuse number from livres if available
   if(DB.livres[size] && DB.livres[size].length){
     DB.livres[size].sort((a,b)=>a-b);
     return DB.livres[size].shift();
@@ -183,319 +181,285 @@ function nextNum(size){
 }
 function makeLabel(size, num){ return size + String(num); }
 
-/* Data operations */
+/* ===== Registrar pacote ===== */
 function allocatePackage(clientCode, size){
   if(!clientCode || !size) return null;
-  // If code has been used before (ever) -> do not allow new registration
   if(DB.codesUsed[clientCode]) {
-    return { error: 'Código do cliente já utilizado anteriormente. Não é permitido reutilizar.' };
+    return { error: 'Código já utilizado anteriormente.' };
   }
-  // create package
+
   const num = nextNum(size);
   const etiqueta = makeLabel(size, num);
   const rec = { codigo: clientCode, etiqueta, tamanho:size, num, ts: Date.now() };
+
   DB.registros.push(rec);
-  DB.codesUsed[clientCode] = true; // mark code as used forever
+  DB.codesUsed[clientCode] = true;
   save();
   return rec;
 }
 
+/* ===== Entregar ===== */
 function markDeliveredByCode(clientCode){
   const idx = DB.registros.findIndex(r => r.codigo === clientCode);
   if(idx === -1) return null;
+
   const rec = DB.registros.splice(idx,1)[0];
   rec.tsEntregue = Date.now();
   DB.entregues.push(rec);
-  // free label number for reuse
+
   if(rec && rec.tamanho && rec.num != null){
-    DB.livres[rec.tamanho] = DB.livres[rec.tamanho] || [];
     DB.livres[rec.tamanho].push(rec.num);
   }
+
   save();
   return rec;
 }
 
-/* ===== UI rendering ===== */
+/* ===== Renderização ===== */
 function renderPending(filter=''){
   pendingList.innerHTML = '';
   const list = DB.registros.slice().reverse().filter(r=>{
     if(!filter) return true;
     return (r.codigo && r.codigo.includes(filter)) || (r.etiqueta && r.etiqueta.includes(filter));
   });
+
   if(list.length===0){
     pendingList.innerHTML = '<div class="small muted">Nenhum pacote pendente.</div>';
     return;
   }
+
   list.forEach(r=>{
-    const div = document.createElement('div'); div.className='item';
-    div.innerHTML = `<div>
+    const div = document.createElement('div');
+    div.className='item';
+    div.innerHTML = `
+      <div>
         <div class="label">${r.etiqueta}</div>
-        <div class="small muted">${r.codigo} • ${r.tamanho} • recebido ${new Date(r.ts).toLocaleString()}</div>
+        <div class="small muted">${r.codigo} • ${r.tamanho} • ${new Date(r.ts).toLocaleString()}</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="secondary" onclick="showDetails('${r.codigo}')">Ver</button>
         <button class="deliver-btn" onclick="deliverConfirm('${r.codigo}')">Entregar</button>
-      </div>`;
+      </div>
+    `;
     pendingList.appendChild(div);
   });
 }
+
 function renderDelivered(){
   deliveredList.innerHTML = '';
   if(DB.entregues.length===0){
     deliveredList.innerHTML = '<div class="small muted">Nenhum pacote entregue ainda.</div>';
     return;
   }
+
   DB.entregues.slice().reverse().forEach(r=>{
-    const div = document.createElement('div'); div.className='item';
-    div.innerHTML = `<div>
+    const div = document.createElement('div');
+    div.className='item';
+    div.innerHTML = `
+      <div>
         <div class="label">${r.etiqueta}</div>
-        <div class="small muted">${r.codigo} • ${r.tamanho} • entregue ${new Date(r.tsEntregue).toLocaleString()}</div>
-      </div>`;
+        <div class="small muted">${r.codigo} • ${r.tamanho} • ${new Date(r.tsEntregue).toLocaleString()}</div>
+      </div>
+    `;
     deliveredList.appendChild(div);
   });
 }
 
-/* ===== Popup interactions ===== */
+/* ===== Popups auxiliares ===== */
 function showGeneratedPopup(rec){
   showPopup('Etiqueta gerada', `Etiqueta: ${rec.etiqueta}\nCliente: ${rec.codigo}`, [
-    { label: 'OK', class: 'ok-btn', onClick: ()=>{ vibrate(20); } }
+    { label:'OK', class:'ok-btn', onClick:()=>vibrate(20) }
   ]);
 }
 
 function showPendingPopup(rec){
-  // rec is the pending record
   showPopup('Pacote pendente', `Etiqueta: ${rec.etiqueta}\nCliente: ${rec.codigo}`, [
-    { label: 'Entregar', class: 'deliver-btn', onClick: ()=>{ const d = markDeliveredByCode(rec.codigo); if(d){ showPopup('Entregue', `Entregue: ${d.etiqueta}`, [{label:'OK', class:'ok-btn'}]); renderPending(searchPending.value.trim()); renderDelivered(); } } },
-    { label: 'Cancelar', class: 'cancel-btn' }
-  ]);
-}
-
-/* show details (quick view) */
-window.showDetails = function(clientCode){
-  const rec = DB.registros.find(r=>r.codigo===clientCode);
-  if(!rec) return alert('Registro não encontrado');
-  showPopup('Detalhes', `Etiqueta: ${rec.etiqueta}\nCliente: ${rec.codigo}\nTamanho: ${rec.tamanho}\nRecebido: ${new Date(rec.ts).toLocaleString()}`, [
-    { label:'Fechar', class:'ok-btn' }
-  ]);
-}
-
-/* deliver confirm via button */
-window.deliverConfirm = function(clientCode){
-  const rec = DB.registros.find(r=>r.codigo===clientCode);
-  if(!rec) return alert('Registro não encontrado');
-  showPopup('Confirmar entrega', `Entregar etiqueta ${rec.etiqueta}?`, [
-    { label:'Sim, entregar', class:'deliver-btn', onClick: ()=>{ const d=markDeliveredByCode(clientCode); if(d){ showPopup('Entregue', `Entregue: ${d.etiqueta}`, [{label:'OK', class:'ok-btn'}]); renderPending(searchPending.value.trim()); renderDelivered(); } } },
+    { label:'Entregar', class:'deliver-btn', onClick:()=>{
+      const d = markDeliveredByCode(rec.codigo);
+      if(d){
+        showPopup('Entregue', `Entregue: ${d.etiqueta}`, [{label:'OK', class:'ok-btn'}]);
+        renderPending(searchPending.value.trim());
+        renderDelivered();
+      }
+    }},
     { label:'Cancelar', class:'cancel-btn' }
   ]);
 }
 
-/* ===== Scanner handling (batch mode) ===== */
-/*
- Flow:
-  - User selects lot size (currentLotSize).
-  - User focuses scannerInput and bipas multiple codes.
-  - When Enter pressed:
-     - If code already exists in DB.registros -> show pending popup (allow deliver)
-     - Else if code exists in DB.entregues -> show message "já entregue"
-     - Else -> allocatePackage(clientCode,currentLotSize) and show generated popup (central big) with OK.
-  - After OK, scannerInput is focused again for next code.
-*/
+window.showDetails = function(codigo){
+  const rec = DB.registros.find(r=>r.codigo===codigo);
+  if(!rec) return;
+  showPopup('Detalhes', `Etiqueta: ${rec.etiqueta}\nCliente: ${rec.codigo}\nTamanho: ${rec.tamanho}`, [
+    { label:'Fechar', class:'ok-btn' }
+  ]);
+};
 
-scannerInput.addEventListener('keydown', (e) => {
+window.deliverConfirm = function(codigo){
+  const rec = DB.registros.find(r=>r.codigo===codigo);
+  if(!rec) return;
+  showPopup('Confirmar entrega', `Entregar etiqueta ${rec.etiqueta}?`, [
+    { label:'Sim, entregar', class:'deliver-btn', onClick:()=>{
+      const d = markDeliveredByCode(codigo);
+      if(d){
+        showPopup('Entregue', `Entregue: ${d.etiqueta}`, [{label:'OK', class:'ok-btn'}]);
+        renderPending(searchPending.value.trim());
+        renderDelivered();
+      }
+    }},
+    { label:'Cancelar', class:'cancel-btn' }
+  ]);
+};/* ===== Scanner + Digitação manual (ENTER) ===== */
+scannerInput.addEventListener('keydown', (e)=>{
   if(e.key === 'Enter'){
     const code = scannerInput.value.trim();
     if(!code){
-      // nothing to do
-      scannerInput.value = '';
+      scannerInput.value='';
       return;
     }
-    // debounce duplicate scans in short time
+
     const now = Date.now();
     if(lastDetected === code && (now - lastAllocTime) < 600) {
-      scannerInput.value = '';
+      scannerInput.value='';
       return;
     }
-    lastDetected = code; lastAllocTime = now;
+    lastDetected = code;
+    lastAllocTime = now;
 
-    // if exists pending -> show pending popup (allow deliver)
     const pend = DB.registros.find(r=>r.codigo === code);
     if(pend){
       showPendingPopup(pend);
-      scannerInput.value = '';
+      scannerInput.value='';
       return;
     }
-    // if exists delivered -> show info (already delivered)
+
     const del = DB.entregues.find(r=>r.codigo === code);
     if(del){
-      showPopup('Já entregue', `Esse código já foi entregue antes.\nEtiqueta: ${del.etiqueta}`, [
-        { label:'OK', class:'ok-btn' }
+      showPopup('Já entregue', `Esse código já foi entregue.\nEtiqueta: ${del.etiqueta}`, [
+        {label:'OK', class:'ok-btn'}
       ]);
-      scannerInput.value = '';
+      scannerInput.value='';
       return;
     }
-    // new code - must have a lot size chosen
+
     if(!currentLotSize){
-      showPopup('Escolha o tamanho', 'Nenhum lote selecionado. Escolha o tamanho (P/M/G) antes de bipar.', [
-        { label:'OK', class:'ok-btn' }
+      showPopup('Escolha o tamanho', 'Selecione P / M / G antes de bipar ou digitar.', [
+        {label:'OK', class:'ok-btn'}
       ]);
-      scannerInput.value = '';
+      scannerInput.value='';
       return;
     }
-    // allocate
+
     const rec = allocatePackage(code, currentLotSize);
     if(rec && rec.error){
       showPopup('Erro', rec.error, [{label:'OK', class:'ok-btn'}]);
-      scannerInput.value = '';
+      scannerInput.value='';
       return;
     }
-    // success popup (central big) with OK
+
     showGeneratedPopup(rec);
-    // clear input for next code after a short delay (but focus remains)
-    scannerInput.value = '';
+    scannerInput.value='';
     return;
   }
 });
 
-/* ===== Lot buttons behaviour ===== */
+/* ===== Botões do lote (com ocultação) ===== */
 function setLot(size){
   currentLotSize = size;
-  btnLotP.classList.remove('active'); btnLotM.classList.remove('active'); btnLotG.classList.remove('active');
+
+  btnLotP.classList.remove('active');
+  btnLotM.classList.remove('active');
+  btnLotG.classList.remove('active');
+
   if(size==='P') btnLotP.classList.add('active');
   if(size==='M') btnLotM.classList.add('active');
   if(size==='G') btnLotG.classList.add('active');
+
+  /* Ocultar os outros tamanhos */
+  btnLotP.style.display = (size==='P'?'block':'none');
+  btnLotM.style.display = (size==='M'?'block':'none');
+  btnLotG.style.display = (size==='G'?'block':'none');
+
   scannerInput.focus();
 }
-btnLotP.addEventListener('click', ()=> setLot('P'));
-btnLotM.addEventListener('click', ()=> setLot('M'));
-btnLotG.addEventListener('click', ()=> setLot('G'));
-btnClearLot.addEventListener('click', ()=>{ currentLotSize=null; btnLotP.classList.remove('active'); btnLotM.classList.remove('active'); btnLotG.classList.remove('active'); scannerInput.focus(); });
 
-/* ===== Backup / export / reset / undo ===== */
-function download(filename, text){
+btnLotP.addEventListener('click', ()=>setLot('P'));
+btnLotM.addEventListener('click', ()=>setLot('M'));
+btnLotG.addEventListener('click', ()=>setLot('G'));
+
+/* ===== FINALIZAR LOTE (mostrar botões novamente) ===== */
+btnClearLot.addEventListener('click', ()=>{
+  currentLotSize = null;
+
+  btnLotP.classList.remove('active');
+  btnLotM.classList.remove('active');
+  btnLotG.classList.remove('active');
+
+  btnLotP.style.display='block';
+  btnLotM.style.display='block';
+  btnLotG.style.display='block';
+
+  scannerInput.focus();
+});
+
+/* ===== Export/Backup ===== */
+function download(filename,text){
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], {type:'application/json'}));
+  a.href = URL.createObjectURL(new Blob([text],{type:'application/json'}));
   a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
 }
+
 exportCsv.addEventListener('click', ()=>{
   const rows = [['codigo','etiqueta','tamanho','num','ts','tsEntregue']];
   DB.entregues.concat(DB.registros).forEach(r=>{
-    rows.push([r.codigo || '', r.etiqueta || '', r.tamanho || '', r.num || '', r.ts || '', r.tsEntregue || '']);
+    rows.push([r.codigo||'',r.etiqueta||'',r.tamanho||'',r.num||'',r.ts||'',r.tsEntregue||'']);
   });
-  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\\n');
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   download('facilita_export.csv', csv);
 });
-backupBtn.addEventListener('click', ()=> {
-  download('facilita_backup_' + Date.now() + '.json', JSON.stringify(DB, null, 2));
+
+backupBtn.addEventListener('click', ()=>{
+  download('facilita_backup_'+Date.now()+'.json', JSON.stringify(DB,null,2));
 });
 
-// auto backup (localStorage copy)
-setInterval(()=>{ try{ localStorage.setItem(STORAGE_KEY + '_AUTOSAVE', JSON.stringify(DB)); }catch(e){} }, AUTO_BACKUP_INTERVAL);
-
-// reset with undo window
+/* ===== Reset protegido com UNDO ===== */
 btnReset.addEventListener('click', ()=>{
   const pass = prompt('Senha para reset:');
-  if(pass !== RESET_PASSWORD){ alert('Senha inválida'); return; }
-  const confirmText = prompt('Digite a frase de confirmação: QUERO RESETAR TUDO');
-  if(confirmText !== 'QUERO RESETAR TUDO'){ alert('Confirmação incorreta'); return; }
+  if(pass !== RESET_PASSWORD) return alert('Senha inválida');
+
+  const confirmText = prompt('Digite: QUERO RESETAR TUDO');
+  if(confirmText !== 'QUERO RESETAR TUDO') return alert('Confirmação incorreta');
+
   DB.lastUndo = Date.now();
   DB.undoData = JSON.stringify(DB);
-  localStorage.setItem(STORAGE_KEY + '_PRE_RESET', DB.undoData);
-  DB = { registros: [], entregues: [], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, codesUsed:{}, lastUndo: DB.lastUndo, undoData: DB.undoData };
+  localStorage.setItem(STORAGE_KEY+'_PRE_RESET', DB.undoData);
+
+  DB = { registros:[], entregues:[], contadores:{P:0,M:0,G:0}, livres:{P:[],M:[],G:[]}, codesUsed:{}, lastUndo:DB.lastUndo, undoData:DB.undoData };
   save();
+
   renderPending(searchPending.value.trim());
   renderDelivered();
-  showPopup('Reset feito', 'Reset concluído. Você tem 10 minutos para desfazer.', [{label:'OK', class:'ok-btn'}]);
-  startUndoTimer();
+
+  showPopup('Reset feito','Você tem 10 minutos para desfazer.',[{label:'OK',class:'ok-btn'}]);
 });
 
-function startUndoTimer(){
-  const btnId = 'undoBtn';
-  if(document.getElementById(btnId)) return;
-  const b = document.createElement('button'); b.id = btnId; b.textContent = 'Desfazer Reset (10 min)'; b.className='secondary';
-  b.style.marginLeft = '10px';
-  b.onclick = ()=>{
-    const saved = localStorage.getItem(STORAGE_KEY + '_PRE_RESET');
-    if(!saved) return alert('Nenhum backup encontrado');
-    try{ DB = JSON.parse(saved); DB.lastUndo = null; DB.undoData = null; localStorage.removeItem(STORAGE_KEY + '_PRE_RESET'); save(); renderPending(searchPending.value.trim()); renderDelivered(); alert('Dados restaurados'); b.remove(); } catch(e){ alert('Falha ao restaurar'); }
-  };
-  document.querySelector('footer').prepend(b);
-  // expire after window
-  setTimeout(()=>{ try{ const saved = localStorage.getItem(STORAGE_KEY + '_PRE_RESET'); if(saved){ localStorage.removeItem(STORAGE_KEY + '_PRE_RESET'); } if(document.getElementById(btnId)){ document.getElementById(btnId).remove(); } }catch(e){} }, UNDO_WINDOW_MS);
-}
-
-/* ===== Search ===== */
+/* ===== Busca ===== */
 searchPending.addEventListener('input', ()=>{
   renderPending(searchPending.value.trim());
 });
 
-/* ===== Init UI ===== */
-function renderPending(q=''){
-  renderPending = function(filter=''){ /* placeholder so function exists earlier */ };
-  // real implementation reattach
-}
-function renderDelivered(){/* placeholder */}
-
-// attach real renders and call
-renderPending = function(filter=''){
-  pendingList.innerHTML = '';
-  const list = DB.registros.slice().reverse().filter(r=>{
-    if(!filter) return true;
-    return (r.codigo && r.codigo.includes(filter)) || (r.etiqueta && r.etiqueta.includes(filter));
-  });
-  if(list.length===0){
-    pendingList.innerHTML = '<div class="small muted">Nenhum pacote pendente.</div>';
-    return;
-  }
-  list.forEach(r=>{
-    const div = document.createElement('div'); div.className='item';
-    div.innerHTML = `<div>
-        <div class="label">${r.etiqueta}</div>
-        <div class="small muted">${r.codigo} • ${r.tamanho} • recebido ${new Date(r.ts).toLocaleString()}</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="secondary" onclick="showDetails('${r.codigo}')">Ver</button>
-        <button class="deliver-btn" onclick="deliverConfirm('${r.codigo}')">Entregar</button>
-      </div>`;
-    pendingList.appendChild(div);
-  });
-};
-renderDelivered = function(){
-  deliveredList.innerHTML = '';
-  if(DB.entregues.length===0){
-    deliveredList.innerHTML = '<div class="small muted">Nenhum pacote entregue ainda.</div>';
-    return;
-  }
-  DB.entregues.slice().reverse().forEach(r=>{
-    const div = document.createElement('div'); div.className='item';
-    div.innerHTML = `<div>
-        <div class="label">${r.etiqueta}</div>
-        <div class="small muted">${r.codigo} • ${r.tamanho} • entregue ${new Date(r.tsEntregue).toLocaleString()}</div>
-      </div>`;
-    deliveredList.appendChild(div);
-  });
-};
-
-/* ===== helper showDetails & deliverConfirm already defined above via window.* functions ===== */
-
-/* initial render */
+/* ===== Início ===== */
 renderPending('');
 renderDelivered();
-
-/* focus on scanner input automatically */
 scannerInput.focus();
 
-/* ===== keyboard shortcut: Alt+L clears lot selection (opcional) ===== */
+/* Fechar popup com ESC */
 document.addEventListener('keydown', (e)=>{
-  if(e.altKey && (e.key.toLowerCase()==='l')){ currentLotSize=null; btnLotP.classList.remove('active'); btnLotM.classList.remove('active'); btnLotG.classList.remove('active'); scannerInput.focus(); }
+  if(e.key==='Escape'){ hidePopup(); scannerInput.focus(); }
 });
-
-/* ===== Safety: ensure popup close on ESC ===== */
-document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ hidePopup(); scannerInput.focus(); } });
-
-/* ===== End ===== */
 </script>
+
 </body>
 </html>
