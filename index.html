@@ -45,16 +45,15 @@
   .search{width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.02);color:var(--white);font-size:14px;margin-top:8px}
   .top-row{display:flex;gap:8px;align-items:center}
 </style>
-</head><body>
+</head>
+<body>
 
 <header>
   <h1>Facilita Agência — Recebimento em Lote</h1>
   <div class="top-row">
     <div class="small muted">Modo lote: escolha o tamanho antes de bipar/digitar</div>
   </div>
-</header>
-
-<div class="card" id="lotCard">
+</header><div class="card" id="lotCard">
   <div class="small">1) Selecionar tamanho do lote (P/M/G). Após seleção, os demais somem.</div>
 
   <div class="controls" style="margin-top:8px">
@@ -63,11 +62,14 @@
     <button id="btnLotG" class="lot-btn g">G</button>
     <button id="btnClearLot" class="secondary" title="Finalizar lote">Finalizar Lote</button>
   </div>
-<button id="btnEnter" class="big">ENTER</button>
+
   <div style="margin-top:12px" class="small">2) Foque aqui e bipar ou digitar o código. ENTER registra.</div>
   <input id="scannerInput" class="scanner" placeholder="Campo scanner — bipar ou digitar e pressionar ENTER" autofocus autocomplete="off" />
 
-  <div style="margin-top:8px" class="small muted">Dica: escolha o lote, foque no campo e bipar/digitar.</div>
+  <!-- Botão ENTER -->
+  <button id="btnEnter" class="big">ENTER</button>
+
+  <div style="margin-top:8px" class="small muted">Dica: escolha o lote, foque no campo e bipar/digitar ou clique ENTER.</div>
 </div>
 
 <div class="card">
@@ -89,20 +91,6 @@
     </div>
   </div>
   <div id="deliveredList"></div>
-</div>
-
-<footer>
-  <button id="btnReset" class="danger">Resetar (protegido)</button>
-  <div class="small muted">Backup automático a cada 2 minutos; desfazer reset disponível por 10 minutos.</div>
-</footer>
-
-<!-- POPUP backdrop -->
-<div id="popupBackdrop" class="popup-backdrop">
-  <div id="popup" class="popup" role="dialog" aria-modal="true">
-    <h2 id="popupTitle"></h2>
-    <p id="popupText"></p>
-    <div id="popupButtons" class="btn-row"></div>
-  </div>
 </div><script>
 /* ===== CONFIG ===== */
 const STORAGE_KEY = 'FACILITA_LOTE_V1';
@@ -139,6 +127,7 @@ const exportCsv = document.getElementById('exportCsv');
 const backupBtn = document.getElementById('backupBtn');
 const btnReset = document.getElementById('btnReset');
 const searchPending = document.getElementById('searchPending');
+const btnEnter = document.getElementById('btnEnter');
 
 let currentLotSize = null;
 let lastAllocTime = 0;
@@ -274,9 +263,7 @@ function renderDelivered(){
     `;
     deliveredList.appendChild(div);
   });
-}
-
-/* ===== DETALHES E ENTREGA ===== */
+}/* ===== DETALHES E ENTREGA ===== */
 function showDetails(code){
   const r = DB.registros.find(x=>x.codigo===code);
   if(!r) return;
@@ -403,29 +390,9 @@ btnReset.addEventListener('click', ()=>{
   popupButtons.appendChild(okBtn);
   popupButtons.appendChild(cancelBtn);
 });
-</script><script>
-/* ===== ENTER UNIVERSAL (PC + ANDROID + TECLADO QUE ENVIA TAB) ===== */
 
-/* Bloqueia TAB (→ do Android) e converte em ENTER */
-scannerInput.addEventListener('keydown', function(e){
-  if(e.key === 'Tab'){           
-    e.preventDefault();          
-    e.stopPropagation();
-    simulateEnter();             
-  }
-});
-
-/* Detecta ENTER IME (caso algum teclado envie Unidentified + Enter) */
-scannerInput.addEventListener('keydown', function(e){
-  if(e.key === 'Unidentified' && e.code === 'Enter'){
-    e.preventDefault();
-    e.stopPropagation();
-    simulateEnter();
-  }
-});
-
-/* Simulador de ENTER real */
-function simulateEnter(){
+/* ===== BOTÃO ENTER ===== */
+btnEnter.addEventListener('click', ()=>{
   const event = new KeyboardEvent('keydown', {
     key:'Enter',
     code:'Enter',
@@ -434,7 +401,7 @@ function simulateEnter(){
     bubbles:true
   });
   scannerInput.dispatchEvent(event);
-}
+});
 
 /* ===== PROCESSAMENTO PRINCIPAL DO ENTER ===== */
 scannerInput.addEventListener('keydown', function(e){
@@ -543,15 +510,3 @@ document.addEventListener('keydown',(e)=>{
   if(e.key==='Escape'){ hidePopup(); scannerInput.focus(); }
 });
 </script>
-</body>
-</html>const btnEnter = document.getElementById('btnEnter');
-btnEnter.addEventListener('click', ()=> {
-  const enterEvent = new KeyboardEvent('keydown', {
-    key:'Enter',
-    code:'Enter',
-    keyCode:13,
-    which:13,
-    bubbles:true
-  });
-  scannerInput.dispatchEvent(enterEvent);
-});
