@@ -22,7 +22,7 @@
   .lot-btn.active{box-shadow:0 6px 20px rgba(0,0,0,0.6);transform:translateY(-2px)}
   input.scanner{width:100%;padding:12px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:var(--white);font-size:18px;margin-top:8px}
   .row{display:flex;gap:8px}
-  .big{font-size:16px;padding:10px;border-radius:8px;border:0;background:var(--accent);color:#021;font-weight:700;cursor:pointer}
+  .big{font-size:16px;padding:10px;border-radius:8px;border:0;background:var(--accent);color:#021;font-weight:700;cursor:pointer;margin-top:8px;width:100%;text-align:center}
   #pendingList,#deliveredList{max-height:300px;overflow:auto;margin-top:8px}
   .item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);margin-top:8px}
   .label{font-weight:800;font-size:18px}
@@ -35,15 +35,16 @@
   /* POPUP central grande */
   .popup-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:9999}
   .popup{background:#0b1220;padding:20px;border-radius:12px;min-width:300px;max-width:92%;text-align:center;color:var(--white);box-shadow:0 10px 40px rgba(0,0,0,0.6)}
-  .popup h2{margin:0 0 12px 0;font-size:28px}
-  .popup p{margin:0 0 16px 0;color:var(--muted);font-size:16px}
-  .popup .btn-row{display:flex;gap:8px;justify-content:center}
-  .ok-btn{background:var(--accent);color:#021;border:0;padding:12px 18px;border-radius:8px;font-weight:800;cursor:pointer}
-  .deliver-btn{background:#10b981;color:#021;border:0;padding:12px 18px;border-radius:8px;font-weight:800;cursor:pointer}
-  .cancel-btn{background:#374151;color:#fff;border:0;padding:12px 18px;border-radius:8px;cursor:pointer}
+  .popup h2{margin:0 0 12px 0;font-size:22px}
+  .popup p{margin:0 0 16px 0;color:var(--muted);font-size:15px;white-space:pre-line}
+  .popup .btn-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .ok-btn{background:var(--accent);color:#021;border:0;padding:10px 14px;border-radius:8px;font-weight:700;cursor:pointer}
+  .deliver-btn{background:#10b981;color:#021;border:0;padding:10px 14px;border-radius:8px;font-weight:700;cursor:pointer}
+  .cancel-btn{background:#374151;color:#fff;border:0;padding:10px 14px;border-radius:8px;cursor:pointer}
 
   .search{width:100%;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.02);color:var(--white);font-size:14px;margin-top:8px}
   .top-row{display:flex;gap:8px;align-items:center}
+  button:active{transform:translateY(1px)}
 </style>
 </head>
 <body>
@@ -53,7 +54,9 @@
   <div class="top-row">
     <div class="small muted">Modo lote: escolha o tamanho antes de bipar/digitar</div>
   </div>
-</header><div class="card" id="lotCard">
+</header>
+
+<div class="card" id="lotCard">
   <div class="small">1) Selecionar tamanho do lote (P/M/G). Após seleção, os demais somem.</div>
 
   <div class="controls" style="margin-top:8px">
@@ -66,7 +69,7 @@
   <div style="margin-top:12px" class="small">2) Foque aqui e bipar ou digitar o código. ENTER registra.</div>
   <input id="scannerInput" class="scanner" placeholder="Campo scanner — bipar ou digitar e pressionar ENTER" autofocus autocomplete="off" />
 
-  <!-- Botão ENTER -->
+  <!-- Botão ENTER visível -->
   <button id="btnEnter" class="big">ENTER</button>
 
   <div style="margin-top:8px" class="small muted">Dica: escolha o lote, foque no campo e bipar/digitar ou clique ENTER.</div>
@@ -75,7 +78,7 @@
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center">
     <h3 style="margin:0">Pendentes (na agência)</h3>
-    <div class="row">
+    <div class="row" style="width:60%">
       <input id="searchPending" class="search" placeholder="Buscar por código ou etiqueta" />
     </div>
   </div>
@@ -91,12 +94,26 @@
     </div>
   </div>
   <div id="deliveredList"></div>
-</div><script>
+</div>
+
+<footer>
+  <button id="btnReset" class="danger">Resetar (protegido)</button>
+  <div class="small muted">Backup automático a cada 2 minutos; desfazer reset disponível por 10 minutos.</div>
+</footer>
+
+<!-- POPUP backdrop -->
+<div id="popupBackdrop" class="popup-backdrop" aria-hidden="true">
+  <div id="popup" class="popup" role="dialog" aria-modal="true">
+    <h2 id="popupTitle"></h2>
+    <p id="popupText"></p>
+    <div id="popupButtons" class="btn-row"></div>
+  </div>
+</div>
+
+<script>
 /* ===== CONFIG ===== */
 const STORAGE_KEY = 'FACILITA_LOTE_V1';
 const RESET_PASSWORD = '4608';
-const UNDO_WINDOW_MS = 10 * 60 * 1000;
-const AUTO_BACKUP_INTERVAL = 2 * 60 * 1000;
 
 /* ===== DB INIT ===== */
 let DB = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
@@ -110,13 +127,15 @@ if(!DB) DB = {
   undoData: null
 };
 
-/* ===== ELEMENTOS ===== */
+/* ===== ELEMENTS ===== */
 const btnLotP = document.getElementById('btnLotP');
 const btnLotM = document.getElementById('btnLotM');
 const btnLotG = document.getElementById('btnLotG');
 const btnClearLot = document.getElementById('btnClearLot');
 
 const scannerInput = document.getElementById('scannerInput');
+const btnEnter = document.getElementById('btnEnter');
+
 const pendingList = document.getElementById('pendingList');
 const deliveredList = document.getElementById('deliveredList');
 const popupBackdrop = document.getElementById('popupBackdrop');
@@ -127,7 +146,6 @@ const exportCsv = document.getElementById('exportCsv');
 const backupBtn = document.getElementById('backupBtn');
 const btnReset = document.getElementById('btnReset');
 const searchPending = document.getElementById('searchPending');
-const btnEnter = document.getElementById('btnEnter');
 
 let currentLotSize = null;
 let lastAllocTime = 0;
@@ -137,29 +155,34 @@ let lastDetected = null;
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
 function vibrate(ms=30){ if(navigator.vibrate) navigator.vibrate(ms); }
 
-function showPopup(title, text, buttons){
+function showPopup(title='', text='', buttons=[]){
   popupTitle.textContent = title || '';
   popupText.textContent = text || '';
   popupButtons.innerHTML = '';
-
-  buttons.forEach(b=>{
-    const btn = document.createElement('button');
-    btn.textContent = b.label;
-    btn.className = b.class || 'ok-btn';
-    btn.style.margin = '6px';
-    btn.onclick = ()=>{
-      if(b.onClick) b.onClick();
-      hidePopup();
-      scannerInput.focus();
-    };
-    popupButtons.appendChild(btn);
-  });
-
   popupBackdrop.style.display = 'flex';
+  popupBackdrop.setAttribute('aria-hidden','false');
+
+  if(Array.isArray(buttons) && buttons.length){
+    buttons.forEach(b=>{
+      const btn = document.createElement('button');
+      btn.textContent = b.label;
+      btn.className = b.class || 'ok-btn';
+      btn.style.margin = '6px';
+      btn.addEventListener('click', ()=>{
+        if(b.onClick) b.onClick();
+        hidePopup();
+        scannerInput.focus();
+      });
+      popupButtons.appendChild(btn);
+    });
+  } else {
+    // se não há botões passados, deixa o caller inserir elementos (usado no reset flow)
+  }
 }
 
 function hidePopup(){
   popupBackdrop.style.display = 'none';
+  popupBackdrop.setAttribute('aria-hidden','true');
   popupTitle.textContent = '';
   popupText.textContent = '';
   popupButtons.innerHTML = '';
@@ -174,52 +197,43 @@ function nextNum(size){
   DB.contadores[size] = (DB.contadores[size]||0) + 1;
   return DB.contadores[size];
 }
-
-function makeLabel(size, num){
-  return size + String(num);
-}
+function makeLabel(size,num){ return size + String(num); }
 
 /* ===== REGISTRAR ===== */
 function allocatePackage(clientCode, size){
   if(!clientCode || !size) return null;
-
-  if(DB.codesUsed[clientCode]){
-    return { error:'Código já utilizado anteriormente.' };
-  }
-
+  if(DB.codesUsed[clientCode]) return { error:'Código já utilizado anteriormente.' };
   const num = nextNum(size);
-  const etiqueta = makeLabel(size, num);
-
-  const rec = {codigo:clientCode, etiqueta, tamanho:size, num, ts:Date.now()};
+  const etiqueta = makeLabel(size,num);
+  const rec = { codigo: String(clientCode), etiqueta, tamanho:size, num, ts: Date.now() };
   DB.registros.push(rec);
-  DB.codesUsed[clientCode] = true;
-
+  DB.codesUsed[String(clientCode)] = true;
   save();
   return rec;
 }
 
 /* ===== ENTREGAR ===== */
 function markDeliveredByCode(clientCode){
-  const idx = DB.registros.findIndex(r=>r.codigo===clientCode);
+  // garantir string comparável
+  const code = String(clientCode);
+  const idx = DB.registros.findIndex(r=>String(r.codigo)===code);
   if(idx===-1) return null;
-
   const rec = DB.registros.splice(idx,1)[0];
   rec.tsEntregue = Date.now();
   DB.entregues.push(rec);
-
   DB.livres[rec.tamanho].push(rec.num);
-
   save();
   return rec;
 }
 
-/* ===== RENDERS ===== */
+/* ===== RENDER PENDENTES (com addEventListener nos botões) ===== */
 function renderPending(filter=''){
   pendingList.innerHTML = '';
+  const f = (filter||'').toString().trim().toLowerCase();
 
   const list = DB.registros.slice().reverse().filter(r=>{
-    if(!filter) return true;
-    return r.codigo.includes(filter) || r.etiqueta.includes(filter);
+    if(!f) return true;
+    return String(r.codigo).toLowerCase().includes(f) || String(r.etiqueta).toLowerCase().includes(f);
   });
 
   if(list.length===0){
@@ -229,32 +243,54 @@ function renderPending(filter=''){
 
   list.forEach(r=>{
     const div = document.createElement('div');
-    div.className='item';
-    div.innerHTML = `
-      <div>
-        <div class="label">${r.etiqueta}</div>
-        <div class="small muted">${r.codigo} • ${r.tamanho} • ${new Date(r.ts).toLocaleString()}</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="secondary" onclick="showDetails('${r.codigo}')">Ver</button>
-        <button class="deliver-btn" onclick="deliverConfirm('${r.codigo}')">Entregar</button>
-      </div>
-    `;
+    div.className = 'item';
+
+    const left = document.createElement('div');
+    const lbl = document.createElement('div');
+    lbl.className = 'label';
+    lbl.textContent = r.etiqueta;
+    const meta = document.createElement('div');
+    meta.className = 'small muted';
+    meta.textContent = `${r.codigo} • ${r.tamanho} • ${new Date(r.ts).toLocaleString()}`;
+
+    left.appendChild(lbl);
+    left.appendChild(meta);
+
+    const right = document.createElement('div');
+    right.style.display = 'flex';
+    right.style.gap = '8px';
+    right.style.alignItems = 'center';
+
+    const btnView = document.createElement('button');
+    btnView.className = 'secondary';
+    btnView.textContent = 'Ver';
+    btnView.addEventListener('click', ()=> showDetails(r.codigo));
+
+    const btnDeliver = document.createElement('button');
+    btnDeliver.className = 'deliver-btn';
+    btnDeliver.textContent = 'Entregar';
+    btnDeliver.addEventListener('click', ()=> deliverConfirm(r.codigo));
+
+    right.appendChild(btnView);
+    right.appendChild(btnDeliver);
+
+    div.appendChild(left);
+    div.appendChild(right);
+
     pendingList.appendChild(div);
   });
 }
 
+/* ===== RENDER ENTREGUES ===== */
 function renderDelivered(){
   deliveredList.innerHTML = '';
-
   if(DB.entregues.length===0){
     deliveredList.innerHTML = '<div class="small muted">Nenhum pacote entregue ainda.</div>';
     return;
   }
-
   DB.entregues.slice().reverse().forEach(r=>{
     const div = document.createElement('div');
-    div.className='item';
+    div.className = 'item';
     div.innerHTML = `
       <div>
         <div class="label">${r.etiqueta}</div>
@@ -263,46 +299,39 @@ function renderDelivered(){
     `;
     deliveredList.appendChild(div);
   });
-}/* ===== DETALHES E ENTREGA ===== */
-function showDetails(code){
-  const r = DB.registros.find(x=>x.codigo===code);
-  if(!r) return;
+}
 
-  showPopup(
-    `Etiqueta: ${r.etiqueta}`,
-    `Código: ${r.codigo}\nTamanho: ${r.tamanho}\nCriado: ${new Date(r.ts).toLocaleString()}`,
-    [
-      {label:'Entregar', class:'deliver-btn', onClick:()=>deliverConfirm(r.codigo)},
-      {label:'OK', class:'ok-btn'}
-    ]
-  );
+/* ===== DETALHES e ENTREGA ===== */
+function showDetails(code){
+  const r = DB.registros.find(x=>String(x.codigo)===String(code));
+  if(!r) return;
+  showPopup(`Etiqueta: ${r.etiqueta}`, `Código: ${r.codigo}\nTamanho: ${r.tamanho}\nCriado: ${new Date(r.ts).toLocaleString()}`, [
+    { label: 'Entregar', class: 'deliver-btn', onClick: ()=> deliverConfirm(r.codigo) },
+    { label: 'OK', class: 'ok-btn' }
+  ]);
 }
 
 function deliverConfirm(code){
-  showPopup(
-    'Confirmar entrega?',
-    `Deseja marcar como ENTREGUE a etiqueta do código:\n${code}?`,
-    [
-      {label:'Sim', class:'deliver-btn', onClick:()=>doDeliver(code)},
-      {label:'Cancelar', class:'cancel-btn'}
-    ]
-  );
+  showPopup('Confirmar entrega?', `Deseja marcar como ENTREGUE a etiqueta do código:\n${code}?`, [
+    { label: 'Sim', class: 'deliver-btn', onClick: ()=> doDeliver(code) },
+    { label: 'Cancelar', class: 'cancel-btn' }
+  ]);
 }
 
 function doDeliver(code){
   vibrate();
   const r = markDeliveredByCode(code);
   if(!r){
-    showPopup('Erro', 'Pacote não encontrado nos pendentes.', [{label:'OK', class:'ok-btn'}]);
+    showPopup('Erro','Pacote não encontrado nos pendentes.',[{label:'OK',class:'ok-btn'}]);
     return;
   }
   renderPending();
   renderDelivered();
 }
 
-/* ===== BUSCA ===== */
+/* ===== BUSCA case-insensitive ===== */
 searchPending.addEventListener('input', ()=>{
-  renderPending(searchPending.value.trim());
+  renderPending(searchPending.value || '');
 });
 
 /* ===== EXPORT CSV ===== */
@@ -315,7 +344,6 @@ exportCsv.addEventListener('click', ()=>{
   DB.entregues.forEach(r=>{
     csv += `${r.codigo},${r.etiqueta},${r.tamanho},${r.num},${new Date(r.ts).toISOString()},${new Date(r.tsEntregue).toISOString()}\n`;
   });
-
   const blob = new Blob([csv], {type:'text/csv'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -336,14 +364,11 @@ backupBtn.addEventListener('click', ()=>{
   URL.revokeObjectURL(url);
 });
 
-/* ===== RESET ===== */
+/* ===== RESET (usa popupText para inserir input) ===== */
 btnReset.addEventListener('click', ()=>{
-  showPopup(
-    'Resetar sistema',
-    'Digite a senha para resetar:',
-    []
-  );
-
+  showPopup('Resetar sistema','Digite a senha para resetar:', []); // abrir popup vazio
+  // inserir campo de senha e botões manualmente
+  popupText.innerHTML = '';
   const input = document.createElement('input');
   input.type = 'password';
   input.placeholder = 'Senha';
@@ -351,14 +376,14 @@ btnReset.addEventListener('click', ()=>{
   input.style.width = '90%';
   input.style.borderRadius = '8px';
   input.style.marginBottom = '12px';
-  popupText.innerHTML='';
   popupText.appendChild(input);
 
+  popupButtons.innerHTML = '';
   const okBtn = document.createElement('button');
-  okBtn.textContent='Confirmar';
-  okBtn.className='danger';
-  okBtn.style.margin='6px';
-  okBtn.onclick=()=>{
+  okBtn.className = 'danger';
+  okBtn.textContent = 'Confirmar';
+  okBtn.style.margin = '6px';
+  okBtn.addEventListener('click', ()=>{
     if(input.value === RESET_PASSWORD){
       DB.undoData = JSON.parse(JSON.stringify(DB));
       DB.lastUndo = Date.now();
@@ -375,97 +400,85 @@ btnReset.addEventListener('click', ()=>{
       renderPending();
       renderDelivered();
       hidePopup();
-      showPopup('Sucesso','Sistema resetado. Pode desfazer em até 10 minutos.',[{label:'OK',class:'ok-btn'}]);
+      showPopup('Sucesso','Sistema resetado. Pode desfazer em até 10 minutos.', [{label:'OK', class:'ok-btn'}]);
     } else {
-      showPopup('Erro','Senha incorreta.',[{label:'OK',class:'ok-btn'}]);
+      showPopup('Erro','Senha incorreta.', [{label:'OK', class:'ok-btn'}]);
     }
-  };
-
+  });
   const cancelBtn = document.createElement('button');
-  cancelBtn.textContent='Cancelar';
-  cancelBtn.className='cancel-btn';
-  cancelBtn.style.margin='6px';
-  cancelBtn.onclick=()=>hidePopup();
+  cancelBtn.className = 'cancel-btn';
+  cancelBtn.textContent = 'Cancelar';
+  cancelBtn.style.margin = '6px';
+  cancelBtn.addEventListener('click', ()=> hidePopup());
 
   popupButtons.appendChild(okBtn);
   popupButtons.appendChild(cancelBtn);
 });
 
-/* ===== BOTÃO ENTER ===== */
+/* ===== BOTÃO ENTER (dispara o mesmo processamento do Enter) ===== */
 btnEnter.addEventListener('click', ()=>{
-  const event = new KeyboardEvent('keydown', {
-    key:'Enter',
-    code:'Enter',
-    keyCode:13,
-    which:13,
-    bubbles:true
-  });
-  scannerInput.dispatchEvent(event);
+  processScanner();
 });
 
-/* ===== PROCESSAMENTO PRINCIPAL DO ENTER ===== */
+/* ===== ENTER UNIVERSAL: tecla ENTER no input chama processScanner ===== */
 scannerInput.addEventListener('keydown', function(e){
+  if(e.key === 'Tab'){ e.preventDefault(); simulateEnter(); return; }
+  if(e.key === 'Unidentified' && e.code === 'Enter'){ e.preventDefault(); simulateEnter(); return; }
   if (
-    e.key === 'Enter' || 
-    e.key === 'Go' || 
-    e.key === 'Search' || 
-    e.key === 'Done' || 
-    e.key === 'Next' || 
-    e.key === 'Send' ||
-    e.code === 'Enter' ||
-    e.keyCode === 13 ||
-    e.which === 13 ||
-    e.key === '\n' ||
-    e.key === '\r'
+    e.key === 'Enter' || e.key === 'Go' || e.key === 'Search' || e.key === 'Done' ||
+    e.key === 'Next' || e.key === 'Send' || e.code === 'Enter' || e.keyCode === 13 || e.which === 13
   ){
     e.preventDefault();
     e.stopPropagation();
-
-    const code = scannerInput.value.trim();
-    if(!code){ scannerInput.value=''; return; }
-
-    const now = Date.now();
-    if(lastDetected === code && (now - lastAllocTime) < 600){
-      scannerInput.value='';
-      return;
-    }
-    lastDetected = code;
-    lastAllocTime = now;
-
-    const pend = DB.registros.find(r=>r.codigo===code);
-    if(pend){
-      showPopup('Pendente','Este código já está pendente.',[{label:'OK',class:'ok-btn'}]);
-      scannerInput.value='';
-      return;
-    }
-
-    const del = DB.entregues.find(r=>r.codigo===code);
-    if(del){
-      showPopup('Já entregue', `Este código já foi entregue.\nEtiqueta: ${del.etiqueta}`,[{label:'OK',class:'ok-btn'}]);
-      scannerInput.value='';
-      return;
-    }
-
-    if(!currentLotSize){
-      showPopup('Escolha o tamanho','Selecione P / M / G antes de bipar ou digitar.',[{label:'OK',class:'ok-btn'}]);
-      scannerInput.value='';
-      return;
-    }
-
-    const rec = allocatePackage(code, currentLotSize);
-    if(rec && rec.error){
-      showPopup('Erro', rec.error,[{label:'OK',class:'ok-btn'}]);
-      scannerInput.value='';
-      return;
-    }
-
-    showPopup('Etiqueta gerada', `Etiqueta: ${rec.etiqueta}\nCódigo: ${rec.codigo}`,[{label:'OK',class:'ok-btn'}]);
-    renderPending();
-    scannerInput.value='';
+    processScanner();
   }
 });
 
-/* ===== BOTÕES DE LOTE ===== */
+function simulateEnter(){
+  // chama processScanner direto (mais confiável que disparar KeyboardEvent)
+  processScanner();
+}
+
+/* ===== PROCESSAMENTO PRINCIPAL (usado por tecla ENTER e botão ENTER) ===== */
+function processScanner(){
+  const code = (scannerInput.value||'').toString().trim();
+  if(!code){ scannerInput.value=''; return; }
+
+  const now = Date.now();
+  if(lastDetected === code && (now - lastAllocTime) < 600){
+    scannerInput.value=''; return;
+  }
+  lastDetected = code;
+  lastAllocTime = now;
+
+  if(DB.registros.find(r=>String(r.codigo)===String(code))){
+    showPopup('Pendente','Este código já está pendente.', [{label:'OK', class:'ok-btn'}]);
+    scannerInput.value=''; return;
+  }
+
+  if(DB.entregues.find(r=>String(r.codigo)===String(code))){
+    const del = DB.entregues.find(r=>String(r.codigo)===String(code));
+    showPopup('Já entregue', `Este código já foi entregue.\nEtiqueta: ${del.etiqueta}`, [{label:'OK', class:'ok-btn'}]);
+    scannerInput.value=''; return;
+  }
+
+  if(!currentLotSize){
+    showPopup('Escolha o tamanho','Selecione P / M / G antes de bipar ou digitar.', [{label:'OK', class:'ok-btn'}]);
+    scannerInput.value=''; return;
+  }
+
+  const rec = allocatePackage(code, currentLotSize);
+  if(rec && rec.error){
+    showPopup('Erro', rec.error, [{label:'OK', class:'ok-btn'}]);
+    scannerInput.value=''; return;
+  }
+
+  showPopup('Etiqueta gerada', `Etiqueta: ${rec.etiqueta}\nCódigo: ${rec.codigo}`, [{label:'OK', class:'ok-btn'}]);
+  renderPending();
+  scannerInput.value='';
+}
+
+/* ===== BOTÕES DE LOTE (setLot) ===== */
 function setLot(size){
   currentLotSize = size;
 
@@ -477,27 +490,26 @@ function setLot(size){
   if(size==='M') btnLotM.classList.add('active');
   if(size==='G') btnLotG.classList.add('active');
 
-  btnLotP.style.display = (size==='P'?'block':'none');
-  btnLotM.style.display = (size==='M'?'block':'none');
-  btnLotG.style.display = (size==='G'?'block':'none');
+  // escondendo os outros botões para forçar foco no lote ativo (comportamento antigo)
+  btnLotP.style.display = (size==='P' ? 'block' : 'none');
+  btnLotM.style.display = (size==='M' ? 'block' : 'none');
+  btnLotG.style.display = (size==='G' ? 'block' : 'none');
 
   scannerInput.focus();
 }
 
-btnLotP.addEventListener('click', ()=>setLot('P'));
-btnLotM.addEventListener('click', ()=>setLot('M'));
-btnLotG.addEventListener('click', ()=>setLot('G'));
+btnLotP.addEventListener('click', ()=> setLot('P'));
+btnLotM.addEventListener('click', ()=> setLot('M'));
+btnLotG.addEventListener('click', ()=> setLot('G'));
 
 btnClearLot.addEventListener('click', ()=>{
   currentLotSize = null;
   btnLotP.classList.remove('active');
   btnLotM.classList.remove('active');
   btnLotG.classList.remove('active');
-
-  btnLotP.style.display='block';
-  btnLotM.style.display='block';
-  btnLotG.style.display='block';
-
+  btnLotP.style.display = 'block';
+  btnLotM.style.display = 'block';
+  btnLotG.style.display = 'block';
   scannerInput.focus();
 });
 
@@ -510,3 +522,5 @@ document.addEventListener('keydown',(e)=>{
   if(e.key==='Escape'){ hidePopup(); scannerInput.focus(); }
 });
 </script>
+</body>
+</html>
