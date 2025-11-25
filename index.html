@@ -63,7 +63,7 @@
     <button id="btnLotG" class="lot-btn g">G</button>
     <button id="btnClearLot" class="secondary" title="Finalizar lote">Finalizar Lote</button>
   </div>
-
+<button id="btnEnter" class="big">ENTER</button>
   <div style="margin-top:12px" class="small">2) Foque aqui e bipar ou digitar o código. ENTER registra.</div>
   <input id="scannerInput" class="scanner" placeholder="Campo scanner — bipar ou digitar e pressionar ENTER" autofocus autocomplete="off" />
 
@@ -544,4 +544,14 @@ document.addEventListener('keydown',(e)=>{
 });
 </script>
 </body>
-</html>
+</html>const btnEnter = document.getElementById('btnEnter');
+btnEnter.addEventListener('click', ()=> {
+  const enterEvent = new KeyboardEvent('keydown', {
+    key:'Enter',
+    code:'Enter',
+    keyCode:13,
+    which:13,
+    bubbles:true
+  });
+  scannerInput.dispatchEvent(enterEvent);
+});
